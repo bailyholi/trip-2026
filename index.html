@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>法 · 瑞 · 義 2026 旅程總表</title>
+  <!-- Firebase compat (no module needed) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <!-- React -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f4efe6; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useMemo } = React;
+
+// ============================================================
+// 旅程管理系統 — 法瑞義 2026
+// 每日結構化卡片(含時間軸摘要) / 自動待辦 / 旅遊費用(分攤結算) / 資訊庫 / 設定
+// 多幣別手動匯率 · 雲端持久化(家人共看共編)
+// ============================================================
+
+const PALETTE = {
+  bg: "#f4efe6", paper: "#fbf8f1", ink: "#2c2620", inkSoft: "#6b6358", line: "#e0d7c8",
+  fr: "#3a5a9b", ch: "#b5483d", it: "#4a7c59",
+  gold: "#b08945", green: "#5a8a5a", amber: "#c8911f", red: "#bb5a4a",
+  elder: "#7a5a86", kid: "#3f7d8c",
+};
+
+const COUNTRY = {
+  fr: { label: "🇫🇷 法國", color: PALETTE.fr },
+  ch: { label: "🇨🇭 瑞士", color: PALETTE.ch },
+  it: { label: "🇮🇹 義大利", color: PALETTE.it },
+};
+
+const SLOTS = [
+  { key: "transport", label: "交通", icon: "🚆" },
+  { key: "ticket", label: "門票", icon: "🎫" },
+  { key: "food", label: "餐食", icon: "🍽️" },
+];
+const TYPE = {
+  transport: { label: "交通", icon: "🚆" },
+  lodging:   { label: "住宿", icon: "🏨" },
+  ticket:    { label: "門票", icon: "🎫" },
+  food:      { label: "餐食", icon: "🍽️" },
+};
+const STATUS = {
+  booked:    { label: "已預定", color: PALETTE.green, bg: "#e8f0e6" },
+  pending:   { label: "代訂中", color: PALETTE.amber, bg: "#faf2dd" },
+  todo:      { label: "待預定", color: PALETTE.red, bg: "#f6e3df" },
+  estimate:  { label: "預估", color: PALETTE.inkSoft, bg: "#eee8dd" },
+};
+
+// ---- 預設設定（真實資料）----
+const DEFAULT_SETTINGS = {
+  totalBudget: 800000,
+  currencies: { TWD: 1, EUR: 36.5, CHF: 38.5 },  // 匯率 EUR36.5 / CHF38.5，手動可改
+  groups: {
+    kid:   { label: "先發團", adults: 2, start: "2026-06-03", end: "2026-07-10" },
+    elder: { label: "長輩團", adults: 3, start: "2026-06-15", end: "2026-06-24" },
+  },
+};
+
+// ---- 真實行程資料 ----
+// cur: 幣別; amount: 該幣別金額(全額); paidAmount: 已付(該幣別)
+// splitMode: "none"|"head"|"named"; payer:"kid"|"elder"; namedGroups:["kid","elder"]
+const SEED_DAYS = {
+  // 🇫🇷 法國
+  "2026-06-02": "宜軒+俍頡 TPE 出發（BR087）",
+  "2026-06-03": "抵巴黎 CDG T1 08:05 · 入住 Place d'Aligre",
+  "2026-06-04": "巴黎 · 羅浮宮＋塞納河",
+  "2026-06-05": "巴黎 · 艾菲爾鐵塔＋蒙馬特",
+  "2026-06-06": "巴黎 · 凱旋門＋市區",
+  "2026-06-07": "TGV 11:22 巴黎→17:04 尼斯 · 入住 Avenue de Suède",
+  "2026-06-08": "尼斯 · 蒙地卡羅＋坎城",
+  "2026-06-09": "尼斯 · 羅斯查爾德別墅＋聖十字湖｜韋毅+芮樂 TPE 出發（BR87）",
+  "2026-06-10": "AF7310 韋毅+芮樂 CDG→NCE 12:40 · 全員7人會合",
+  "2026-06-11": "普羅旺斯薰衣草一日遊",
+  "2026-06-12": "尼斯→里昂（火車）· 入住 Campanile Part-Dieu · 晚 Les Halles Paul Bocuse",
+  "2026-06-13": "里昂 · 富維耶聖母院＋Mur des Canuts → Lyon Part-Dieu→伯恩（出發 10:00 前）",
+  // 🇨🇭 瑞士
+  "2026-06-14": "伯恩 · 入住 ibis Styles → 蘇黎世 · 入住 Mama Shelter｜長輩團 CX451 TPE 出發",
+  "2026-06-15": "ZRH 07:10 接長輩 → IR70 09:09→10:11 琉森 · 全員7人 Horw 入住",
+  "2026-06-16": "⭐ 皮拉圖斯山（STP半價 CHF39/人）",
+  "2026-06-17": "⭐ 瑞吉山黃金路線（STP全免）· CGN 湖船→琉森老城",
+  "2026-06-18": "琉森→勞德布魯嫩（STP免費）· 下午 Männlichen 纜車",
+  "2026-06-19": "⭐🔴 少女峰 Jungfraujoch（STP~CHF75）· 下午 Harder Kulm · 晚起司鍋",
+  "2026-06-20": "菲斯特 First（STP25%）· Cliff Walk＋Bachalpsee",
+  "2026-06-21": "勞德布魯嫩→策馬特（STP免費）· 夕陽看馬特洪峰",
+  "2026-06-22": "葛納葛拉特（STP半價 CHF66）· Riffelsee倒影 · Schäferstube 黑鼻羊排",
+  "2026-06-23": "策馬特退房→Visp→蘇黎世→萊茵大瀑布→Friesstrasse 入住｜長輩團 CX382 回台",
+  "2026-06-24": "長輩團 ZRH 13:30 回台 · 先發團 LX1710 12:20→14:00 那不勒斯",
+  // 🇮🇹 義大利
+  "2026-06-25": "那不勒斯 · 入住 Via Speranzella",
+  "2026-06-26": "那不勒斯 · 龐貝古城",
+  "2026-06-27": "那不勒斯 · 卡布里島",
+  "2026-06-28": "Italo TG6VRW 09:20→10:30 羅馬 · 入住 Via Aurora",
+  "2026-06-29": "羅馬 · 競技場＋古羅馬廣場＋特雷維噴泉",
+  "2026-06-30": "梵蒂岡 09:30（✅已訂）· Italo E8CP8L 15:55→17:31 佛羅倫斯",
+  "2026-07-01": "佛羅倫斯 · 比薩斜塔一日遊",
+  "2026-07-02": "佛羅倫斯 · 五漁村 Cinque Terre",
+  "2026-07-03": "火車 16:20→18:23 威尼斯 · 入住 Staycity Apartments",
+  "2026-07-04": "威尼斯（清晨 06:00 最美）",
+  "2026-07-05": "Mestre 09:30 取車（VW Tiguan Alamo）→ 科蒂納 d'Ampezzo",
+  "2026-07-06": "多洛米提 · 入住 Ortisei Cësa Marmolada · Tre Cime",
+  "2026-07-07": "多洛米提 · Alpe di Siusi 高原",
+  "2026-07-08": "多洛米提 → 加爾達湖",
+  "2026-07-09": "米蘭 · 21:00 MXP 還車｜住宿 Cà del Borgo（❓待確認）",
+  "2026-07-10": "BR96 11:15 MXP T1 → 7/11 06:05 TPE",
+};
+
+const SEED_ITEMS = [
+  // ════════════════════════════════
+  // 🇫🇷 法國段
+  // ════════════════════════════════
+
+  // 機票：BR087 宜軒+俍頡 去回程 NT$57,575（含BR96回程）
+  { id:"i01", date:"2026-06-02", country:"fr", type:"transport", title:"BR087 宜軒+俍頡 TPE T2→CDG T1", time:"23:30", status:"booked",
+    cur:"TWD", amount:57575, paidAmount:57575,
+    ref:"BR087 / 票號 6952462973783+6952462973784",
+    qr:"", note:"23:30 TPE T2 → 6/3 08:05 CDG T1。含BR96回程。行李2PC×2人", splitMode:"none" },
+
+  { id:"i02", date:"2026-06-03", country:"fr", type:"lodging", title:"巴黎 Airbnb Place d'Aligre（4晚）", status:"booked",
+    cur:"TWD", amount:28072, paidAmount:28072, ref:"", qr:"",
+    note:"2 Place d'Aligre 75012 Paris", splitMode:"none" },
+
+  { id:"i03", date:"2026-06-04", country:"fr", type:"ticket", title:"羅浮宮門票", time:"10:00", status:"todo",
+    cur:"EUR", amount:22, paidAmount:0, ref:"", qr:"",
+    note:"需網路預購 louvre.fr，帶俍頡備推車或背巾", splitMode:"none" },
+
+  // TGV 6165 宜軒+俍頡 已付 NT$8,000
+  { id:"i04", date:"2026-06-07", country:"fr", type:"transport", title:"TGV INOUI 6165 宜軒+俍頡 巴黎→尼斯", time:"11:22", status:"booked",
+    cur:"TWD", amount:8000, paidAmount:8000,
+    ref:"LRP224 / SNCF Connect App / Coach 18", qr:"",
+    note:"Paris GdL 11:22 → Nice Ville 17:04。宜軒+俍頡", splitMode:"none" },
+
+  { id:"i05", date:"2026-06-07", country:"fr", type:"lodging", title:"尼斯 Airbnb Avenue de Suède（5晚）", status:"booked",
+    cur:"TWD", amount:21553, paidAmount:21553, ref:"", qr:"",
+    note:"7 Avenue de Suède 06000 Nice", splitMode:"none" },
+
+  // BR87 韋毅+芮樂 去回程 NT$57,575（含BR96回程）
+  { id:"i06", date:"2026-06-09", country:"fr", type:"transport", title:"BR87 韋毅+芮樂 TPE T2→CDG T1", time:"23:30", status:"booked",
+    cur:"TWD", amount:57575, paidAmount:57575,
+    ref:"EOOM9A / 票號 6952464164204+6952464164205",
+    qr:"", note:"23:30 TPE T2 → 6/10 08:05 CDG T1。含BR96回程。行李2PC×2人", splitMode:"none" },
+
+  // AF7310 韋毅+芮樂 已付 NT$13,000，⚠️ 無行李
+  { id:"i07", date:"2026-06-10", country:"fr", type:"transport", title:"AF7310 韋毅+芮樂 CDG→NCE（⚠️無行李）", time:"12:40", status:"booked",
+    cur:"TWD", amount:13000, paidAmount:13000,
+    ref:"XWGR7W / 票號 0572354519118+0572354519117",
+    qr:"", note:"12:40 CDG T2F → 14:20 NCE。⚠️ 無托運行李額！需補購", splitMode:"none" },
+
+  // ⚠️ 補購行李費待辦
+  { id:"i07b", date:"2026-06-10", country:"fr", type:"transport", title:"⚠️ AF7310 補購托運行李（韋毅+芮樂）", time:"12:40", status:"todo",
+    cur:"TWD", amount:3000, paidAmount:0, ref:"", qr:"",
+    note:"🔴 airfrance.com 補購托運行李，越早越便宜", splitMode:"none" },
+
+  // 尼斯→馬賽→里昂 已訂 訂位碼3RZ982
+  { id:"i08", date:"2026-06-12", country:"fr", type:"transport", title:"尼斯→馬賽→里昂 火車（3RZ982）", time:"00:00", status:"booked",
+    cur:"EUR", amount:0, paidAmount:0, ref:"3RZ982", qr:"",
+    note:"全員4人。抵里昂時間⚠️待確認（影響金頭公園安排）", splitMode:"none" },
+
+  { id:"i09", date:"2026-06-12", country:"fr", type:"lodging", title:"里昂 Campanile PRIME Part-Dieu（1晚·含早）", status:"booked",
+    cur:"TWD", amount:5113, paidAmount:5113, ref:"", qr:"",
+    note:"緊鄰 Lyon Part-Dieu 車站。含早餐", splitMode:"none" },
+
+  // 🔴 里昂→伯恩 未訂
+  { id:"i10", date:"2026-06-13", country:"fr", type:"transport", title:"Lyon Part-Dieu→Genève→Bern 火車", time:"10:00", status:"todo",
+    cur:"CHF", amount:0, paidAmount:0, ref:"", qr:"",
+    note:"🔴 未訂！sbb.ch。2大+俍頡+芮樂，建議10:00前出發，約4hr", splitMode:"none" },
+
+  // ════════════════════════════════
+  // 🇨🇭 瑞士段
+  // ════════════════════════════════
+
+  { id:"i11", date:"2026-06-13", country:"ch", type:"lodging", title:"伯恩 ibis Styles Bern City（1晚·含早）", status:"booked",
+    cur:"TWD", amount:8301, paidAmount:8301, ref:"", qr:"",
+    note:"含早餐。Agoda", splitMode:"none" },
+
+  { id:"i12", date:"2026-06-14", country:"ch", type:"lodging", title:"蘇黎世 Mama Shelter（1晚）", status:"booked",
+    cur:"TWD", amount:6688, paidAmount:6688, ref:"", qr:"",
+    note:"Schulstrasse 44, Zürich", splitMode:"none" },
+
+  // CX451 長輩團 NT$20,000（里程票稅費）
+  { id:"i13", date:"2026-06-14", country:"ch", type:"transport", title:"CX451+CX383 長輩2人 TPE→HKG→ZRH（商務艙）", time:"19:30", status:"booked",
+    cur:"TWD", amount:20000, paidAmount:20000,
+    ref:"E98BIC / 票號 1602126791940+1602126791941",
+    qr:"", note:"張玉英(12C/15A)+李英誌(12B/16A)。19:30 TPE→21:30 HKG → 00:05→07:10 ZRH 6/15。董柏辰同班❓費用NT$28,000待確認", splitMode:"none" },
+
+  // STP NT$93,630 已付
+  { id:"i26", date:"2026-06-16", country:"ch", type:"transport", title:"Swiss Travel Pass 8天2等（6/16–6/23）5人", time:"00:00", status:"booked",
+    cur:"TWD", amount:93630, paidAmount:93630,
+    ref:"STP / 宜軒+韋毅CHF439×2 / 張玉英+李英誌CHF439×2 / 董柏辰CHF311",
+    qr:"", note:"6/16–6/23有效。全瑞士火車/船/巴士免費。俍頡+芮樂6歲以下免費", splitMode:"named", payer:"kid", namedGroups:["kid","elder"] },
+
+  { id:"i14", date:"2026-06-15", country:"ch", type:"lodging", title:"琉森 Horw Airbnb Brändistrasse（3晚）", status:"booked",
+    cur:"TWD", amount:46436, paidAmount:46436, ref:"", qr:"",
+    note:"Brändistrasse 1, Horw。全員7人，瑞士段住宿分攤", splitMode:"head", payer:"kid" },
+
+  // 6/15 ZRH→琉森 STP未生效，需另購
+  { id:"i14b", date:"2026-06-15", country:"ch", type:"transport", title:"ZRH機場→琉森 IR70 09:09（STP未生效）", time:"09:09", status:"todo",
+    cur:"CHF", amount:135, paidAmount:0, ref:"", qr:"",
+    note:"STP 6/16才生效！6/15這天需另買票。CHF27/大人×5人=135。現場或SBB App購", splitMode:"named", payer:"kid", namedGroups:["kid","elder"] },
+
+  // 6/16 皮拉圖斯（STP半價 CHF39/大）待訂
+  { id:"i15", date:"2026-06-16", country:"ch", type:"ticket", title:"皮拉圖斯山 齒軌＋纜車（STP半價 CHF39/人）", time:"09:00", status:"todo",
+    cur:"CHF", amount:273, paidAmount:0, ref:"", qr:"",
+    note:"🔴 需預約！CHF39/大×7人=273。pilatus.ch，7人+高腳椅1", splitMode:"named", payer:"kid", namedGroups:["kid","elder"] },
+
+  { id:"i16", date:"2026-06-16", country:"ch", type:"food", title:"Pilatus 山頂餐廳午餐（11:30）", time:"11:30", status:"todo",
+    cur:"CHF", amount:350, paidAmount:0, ref:"", qr:"",
+    note:"🔴 需電話預約 +41 41 329 12 12，7人+高腳椅", splitMode:"head", payer:"kid" },
+
+  // 6/17 瑞吉山黃金路線（STP全免）
+  { id:"i17b", date:"2026-06-17", country:"ch", type:"transport", title:"⭐ 瑞吉山黃金路線（STP全免）", time:"09:09", status:"booked",
+    cur:"CHF", amount:0, paidAmount:0, ref:"STP全免", qr:"",
+    note:"Arth-Goldau→藍色齒軌→Rigi Kulm→紅色齒軌→Vitznau→CGN湖船14:10→琉森老城。全員7人免費", splitMode:"none" },
+
+  { id:"i16b", date:"2026-06-17", country:"ch", type:"food", title:"瑞吉山頂 Rigi Kulm Hotel 午餐（12:00）", time:"12:00", status:"todo",
+    cur:"CHF", amount:245, paidAmount:0, ref:"", qr:"",
+    note:"⚠️ 需預約 +41 41 399 81 58，7人", splitMode:"head", payer:"kid" },
+
+  // 6/18 琉森→勞德布魯嫩（STP免費）
+  { id:"i17c", date:"2026-06-18", country:"ch", type:"transport", title:"琉森→勞德布魯嫩（STP免費）", time:"08:00", status:"booked",
+    cur:"CHF", amount:0, paidAmount:0, ref:"STP全免", qr:"",
+    note:"STP免費。抵達後下午可去 Männlichen 纜車（STP 25%折扣）", splitMode:"none" },
+
+  { id:"i17", date:"2026-06-18", country:"ch", type:"lodging", title:"勞德布魯嫩 Airbnb Schützenbach（3晚）", status:"booked",
+    cur:"TWD", amount:69302, paidAmount:69302, ref:"", qr:"",
+    note:"Schützenbach, Lauterbrunnen。全員7人，瑞士段住宿分攤", splitMode:"head", payer:"kid" },
+
+  // 6/18 Männlichen 纜車（STP 25%）
+  { id:"i17d", date:"2026-06-18", country:"ch", type:"ticket", title:"Männlichen 纜車（STP 25%折扣）", time:"14:00", status:"todo",
+    cur:"CHF", amount:190, paidAmount:0, ref:"", qr:"",
+    note:"Wengen→Männlichen。STP 25%折扣 約CHF38/大×5人=190。俍頡+芮樂免費", splitMode:"none" },
+
+  // 6/19 少女峰 🔴未訂
+  { id:"i18", date:"2026-06-19", country:"ch", type:"ticket", title:"⭐ 少女峰 Jungfraujoch（STP折扣 CHF75/人）", time:"08:00", status:"todo",
+    cur:"CHF", amount:525, paidAmount:0, ref:"", qr:"",
+    note:"🔴 未訂！jungfrau.ch。CHF75/大×7人=525。俍頡+芮樂完全免費！高海拔3454m帶暖衣", splitMode:"named", payer:"kid", namedGroups:["kid","elder"] },
+
+  // 6/19 Harder Kulm（STP 25%）
+  { id:"i18b", date:"2026-06-19", country:"ch", type:"ticket", title:"Harder Kulm 哈德昆（STP 25%）", time:"16:00", status:"todo",
+    cur:"CHF", amount:80, paidAmount:0, ref:"", qr:"",
+    note:"因特拉根纜車。STP 25%折扣 約CHF16/大×5=80。下午少女峰回來順道去", splitMode:"none" },
+
+  { id:"i19", date:"2026-06-19", country:"ch", type:"food", title:"因特拉根 起司鍋晚餐", time:"19:00", status:"todo",
+    cur:"CHF", amount:200, paidAmount:0, ref:"", qr:"",
+    note:"⚠️ Goldener Anker 或 Taverne zur Krone，7人需預約", splitMode:"head", payer:"kid" },
+
+  // 6/20 菲斯特 First（STP 25%）
+  { id:"i19b", date:"2026-06-20", country:"ch", type:"ticket", title:"菲斯特 First Cliff Walk（STP 25%）", time:"09:00", status:"todo",
+    cur:"CHF", amount:160, paidAmount:0, ref:"", qr:"",
+    note:"Grindelwald→First纜車。STP 25%折扣 約CHF32/大×5=160。Cliff Walk＋Bachalpsee 巴哈湖。俍頡+芮樂免費", splitMode:"none" },
+
+  // 6/21 勞德布魯嫩→策馬特（STP免費）
+  { id:"i20b", date:"2026-06-21", country:"ch", type:"transport", title:"勞德布魯嫩→策馬特（STP免費）", time:"09:00", status:"booked",
+    cur:"CHF", amount:0, paidAmount:0, ref:"STP全免", qr:"",
+    note:"約2小時。抵達超市採購，夕陽看馬特洪峰", splitMode:"none" },
+
+  { id:"i20", date:"2026-06-21", country:"ch", type:"lodging", title:"策馬特 Kirchplatz 2 Floor 2（2晚）", status:"booked",
+    cur:"TWD", amount:46828, paidAmount:46828, ref:"CHF 1,195 / Agoda", qr:"",
+    note:"Kirchplatz 2 Floor 2, Zermatt。全員7人住宿分攤", splitMode:"head", payer:"kid" },
+
+  // 6/22 葛納葛拉特（STP半價 CHF66）待訂
+  { id:"i21", date:"2026-06-22", country:"ch", type:"ticket", title:"葛納葛拉特 登山火車（STP半價 CHF66/人）", time:"08:30", status:"todo",
+    cur:"CHF", amount:462, paidAmount:0, ref:"", qr:"",
+    note:"CHF66/大×7人=462。俍頡+芮樂免費。Rotenboden下車→步行15分→Riffelsee倒影→Riffelberg午餐", splitMode:"named", payer:"kid", namedGroups:["kid","elder"] },
+
+  // 6/22 Riffelberg 午餐 待訂
+  { id:"i21b", date:"2026-06-22", country:"ch", type:"food", title:"Riffelberg 山屋午餐", time:"12:30", status:"todo",
+    cur:"CHF", amount:245, paidAmount:0, ref:"", qr:"",
+    note:"⚠️ 需預約 riffelberg.ch，7人", splitMode:"head", payer:"kid" },
+
+  { id:"i22", date:"2026-06-22", country:"ch", type:"food", title:"Schäferstube 黑鼻羊排晚餐", time:"19:00", status:"todo",
+    cur:"CHF", amount:350, paidAmount:0, ref:"", qr:"",
+    note:"⚠️ 需預約 julen.ch / +41 27 966 76 76，7人+高腳椅", splitMode:"head", payer:"kid" },
+
+  // 6/23 策馬特→Visp→ZRH→萊茵大瀑布（STP最後一天）
+  { id:"i22b", date:"2026-06-23", country:"ch", type:"transport", title:"策馬特→Visp→蘇黎世（STP最後一天）", time:"08:00", status:"booked",
+    cur:"CHF", amount:0, paidAmount:0, ref:"STP最後一天", qr:"",
+    note:"策馬特窄軌→Visp換標準軌→ZRH HB。萊茵大瀑布 S33 ZRH→Schloss Laufen am Rheinfall", splitMode:"none" },
+
+  { id:"i23", date:"2026-06-23", country:"ch", type:"lodging", title:"蘇黎世 Airbnb Friesstrasse 19（1晚）", status:"booked",
+    cur:"TWD", amount:14715, paidAmount:14715, ref:"", qr:"",
+    note:"Friesstrasse 19, Zürich 8050。僅先發團4人", splitMode:"none" },
+
+  { id:"i24", date:"2026-06-23", country:"ch", type:"ticket", title:"萊茵大瀑布（南岸+藍色遊船）", time:"14:00", status:"estimate",
+    cur:"CHF", amount:52, paidAmount:0, ref:"", qr:"",
+    note:"南岸CHF5×4=20 + 遊船CHF8×4=32。開放08:00-19:00", splitMode:"none" },
+
+  // 6/24 長輩團 CX382 回台
+  { id:"i25", date:"2026-06-24", country:"ch", type:"transport", title:"CX382 長輩2人 ZRH→HKG→TPE 13:30（商務艙）", time:"13:30", status:"booked",
+    cur:"TWD", amount:0, paidAmount:0,
+    ref:"E98BIC（含去程同訂單）",
+    qr:"", note:"張玉英(14A)+李英誌(15A)。13:30 ZRH → 07:05(+1) HKG → CX530 TPE", splitMode:"none" },
+
+  // 6/24 先發團 LX1710（預估NT$25,000）
+  { id:"i27", date:"2026-06-24", country:"it", type:"transport", title:"LX1710 先發團 ZRH→那不勒斯 12:20", time:"12:20", status:"booked",
+    cur:"TWD", amount:25000, paidAmount:25000,
+    ref:"XOZ7IT(韋毅) / XP5E9W(宜軒+俍頡+芮樂)",
+    qr:"", note:"12:20 ZRH → 14:00 NAP。韋毅 Economy Classic；宜軒+俍頡+芮樂 Economy Light", splitMode:"none" },
+
+  // ════════════════════════════════
+  // 🇮🇹 義大利段
+  // ════════════════════════════════
+
+  { id:"i28", date:"2026-06-25", country:"it", type:"lodging", title:"那不勒斯 Airbnb Via Speranzella（4晚）", status:"booked",
+    cur:"TWD", amount:22318, paidAmount:22318, ref:"", qr:"",
+    note:"Via Speranzella 22, Napoli", splitMode:"none" },
+
+  // 🔴 龐貝 待訂
+  { id:"i29", date:"2026-06-26", country:"it", type:"ticket", title:"龐貝古城門票", time:"09:00", status:"todo",
+    cur:"EUR", amount:24, paidAmount:0, ref:"", qr:"",
+    note:"🔴 pompeiisites.org。EUR12/大×2=24，俍頡免費。建議開門即入", splitMode:"none" },
+
+  // 🔴 卡布里島快船 待訂
+  { id:"i30", date:"2026-06-27", country:"it", type:"transport", title:"卡布里島 快船來回（那不勒斯）", time:"09:00", status:"todo",
+    cur:"EUR", amount:60, paidAmount:0, ref:"", qr:"",
+    note:"⚠️ caremar.it，需提前訂，建議早班", splitMode:"none" },
+
+  // Italo TG6VRW 已付 EUR89.70
+  { id:"i31", date:"2026-06-28", country:"it", type:"transport", title:"Italo TG6VRW 那不勒斯→羅馬 Prima Business", time:"09:20", status:"booked",
+    cur:"EUR", amount:89.70, paidAmount:89.70,
+    ref:"TG6VRW / Rec.114374220",
+    qr:"", note:"09:20 NAP C → 10:30 ROM Ter。宜軒+韋毅(EUR29.90×2)+俍頡(EUR29.90)。2026/3/25已付", splitMode:"none" },
+
+  { id:"i32", date:"2026-06-28", country:"it", type:"lodging", title:"羅馬 Airbnb Via Aurora（2晚）", status:"booked",
+    cur:"TWD", amount:17831, paidAmount:17831, ref:"", qr:"",
+    note:"Via Aurora 31, Roma", splitMode:"none" },
+
+  // 🔴 競技場 待訂
+  { id:"i33", date:"2026-06-29", country:"it", type:"ticket", title:"羅馬競技場＋古羅馬廣場 門票", time:"10:00", status:"todo",
+    cur:"EUR", amount:24, paidAmount:0, ref:"", qr:"",
+    note:"🔴 parcocolosseo.it，強制網路預訂。EUR24/大×2，俍頡免費", splitMode:"none" },
+
+  // 梵蒂岡 已付 EUR80
+  { id:"i34", date:"2026-06-30", country:"it", type:"ticket", title:"✅ 梵蒂岡博物館 English 導覽（9:30）", time:"09:30", status:"booked",
+    cur:"EUR", amount:80, paidAmount:80,
+    ref:"2L2N0OEN2JVMU3NTY / 單號 29932/2026-9",
+    qr:"", note:"韋毅+宜軒 2人。EUR80已付。入口CORRIDOIO2/PASSAGEWAY2，提前30分到，帶證件", splitMode:"none" },
+
+  // Italo E8CP8L 已付 EUR59.70
+  { id:"i35", date:"2026-06-30", country:"it", type:"transport", title:"Italo E8CP8L 羅馬→佛羅倫斯 Prima Business", time:"15:55", status:"booked",
+    cur:"EUR", amount:59.70, paidAmount:59.70,
+    ref:"E8CP8L / Rec.114373512",
+    qr:"", note:"15:55 ROM → 17:31 FIR SMN。宜軒+韋毅(EUR19.90×2)+俍頡(EUR19.90)。含Fast Track。2026/3/25已付", splitMode:"none" },
+
+  { id:"i36", date:"2026-06-30", country:"it", type:"lodging", title:"佛羅倫斯 Casa Ornella Via di Barbano（3晚）", status:"booked",
+    cur:"TWD", amount:16819, paidAmount:16819, ref:"", qr:"",
+    note:"Via di Barbano 5, Firenze", splitMode:"none" },
+
+  // 🔴 比薩斜塔 待訂
+  { id:"i37", date:"2026-07-01", country:"it", type:"ticket", title:"比薩斜塔 登塔門票", time:"10:00", status:"todo",
+    cur:"EUR", amount:40, paidAmount:0, ref:"", qr:"",
+    note:"⚠️ opapisa.it，需預約。EUR20/大×2，俍頡免費", splitMode:"none" },
+
+  // 佛→威 票號待確認
+  { id:"i38", date:"2026-07-03", country:"it", type:"transport", title:"火車 佛羅倫斯→威尼斯（票號待確認）", time:"16:20", status:"pending",
+    cur:"EUR", amount:0, paidAmount:0,
+    ref:"417268156（❓待確認）", qr:"",
+    note:"16:20 FIR → 18:23 VEN。票號 417268156 請確認是否有效", splitMode:"none" },
+
+  { id:"i39", date:"2026-07-03", country:"it", type:"lodging", title:"威尼斯 Staycity Apartments（2晚）", status:"booked",
+    cur:"TWD", amount:11815, paidAmount:11815, ref:"", qr:"", note:"Venice", splitMode:"none" },
+
+  // Alamo 租車 USD400 到場付
+  { id:"i40", date:"2026-07-05", country:"it", type:"transport", title:"Alamo VW Tiguan 取車 Venice Mestre", time:"09:30", status:"booked",
+    cur:"USD", amount:400, paidAmount:0,
+    ref:"Conf #1692727549",
+    qr:"", note:"09:30 Venice Mestre Station → 7/9 21:00 MXP T1 還。到場付~USD400", splitMode:"none" },
+
+  // 科蒂納 EUR448.89 已付
+  { id:"i41", date:"2026-07-05", country:"it", type:"lodging", title:"科蒂納 Radisson Savoia Palace（1晚）", status:"booked",
+    cur:"EUR", amount:448.89, paidAmount:448.89, ref:"", qr:"",
+    note:"Radisson Residences Savoia Palace, Cortina d'Ampezzo。6/27前可免費取消", splitMode:"none" },
+
+  // 奧爾蒂塞伊 EUR803（已付EUR204訂金）
+  { id:"i42", date:"2026-07-06", country:"it", type:"lodging", title:"奧爾蒂塞伊 Cësa Marmolada（3晚）", status:"booked",
+    cur:"EUR", amount:803, paidAmount:204, ref:"", qr:"",
+    note:"Streda Resciesa 71, Ortisei。已付EUR204訂金，餘EUR599到場付", splitMode:"none" },
+
+  // 米蘭 待確認
+  { id:"i43", date:"2026-07-09", country:"it", type:"lodging", title:"米蘭 Cà del Borgo（1晚）", status:"pending",
+    cur:"TWD", amount:0, paidAmount:0, ref:"", qr:"",
+    note:"❓ 無訂單待確認！請上傳訂單", splitMode:"none" },
+
+  // BR96 回程（含在BR087/BR87票中）
+  { id:"i44", date:"2026-07-10", country:"it", type:"transport", title:"BR96 先發團 MXP T1→TPE T2 11:15（含在去程票）", time:"11:15", status:"booked",
+    cur:"TWD", amount:0, paidAmount:0,
+    ref:"EOOM9A / 含在去程機票中",
+    qr:"", note:"11:15 MXP T1 → 7/11 06:05 TPE T2。已含在BR087+BR87票價中", splitMode:"none" },
+];
+
+// 資訊庫：以「行程項目 id（地點）」為 key
+// 每地點一個物件：{ links:[{id,title,cat,url}], note:自己筆記, summary:AI速讀 }
+const SEED_INFO = {
+  "i03": {
+    links: [
+      { id: "l1", title: "羅浮宮官方訂票（免排隊）", cat: "ticket", url: "https://www.louvre.fr/en/visit/tickets-passes" },
+      { id: "l2", title: "Google 地圖 · 黎塞留翼入口", cat: "transport", url: "https://maps.google.com/?q=Louvre+Museum+Paris" },
+    ],
+    note: "先衝蒙娜麗莎再回頭看其他。帶 4 歲俍頡要備推車或背巾。",
+    summary: "",
+  },
+  "i18": {
+    links: [
+      { id: "l3", title: "Jungfrau 官方訂票 + STP折扣說明", cat: "ticket", url: "https://www.jungfrau.ch/en-gb/tickets/" },
+    ],
+    note: "🔴 未訂！STP 折扣約 CHF75/大人，俍頡（4歲）＋芮樂（2歲）免費。建議 08:00 出發搶早班車避人潮。高海拔 3454m，注意高山症，帶暖衣。",
+    summary: "",
+  },
+  "i34": {
+    links: [{ id: "l4", title: "梵蒂岡官方預約確認頁", cat: "ticket", url: "https://tickets.museivaticani.va" }],
+    note: "✅ 已訂 6/30 09:30，Code: 2L2N0OEN2JVMU3NTY。入口 CORRIDOIO2/PASSAGEWAY2，30分前到。帶身份證件。",
+    summary: "",
+  },
+};
+
+// ── Firebase ──
+const firebaseConfig = {
+  apiKey: "AIzaSyB5BinqD52fP2Q_45clCkZNAKPI_jZnaug",
+  authDomain: "europe-tour-7f8d8.firebaseapp.com",
+  databaseURL: "https://europe-tour-7f8d8-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "europe-tour-7f8d8",
+  storageBucket: "europe-tour-7f8d8.firebasestorage.app",
+  messagingSenderId: "513399245478",
+  appId: "1:513399245478:web:dc8365e30df7c5cf710267"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+async function loadState() {
+  try {
+    const snap = await db.ref("tripData").get();
+    if (snap.exists()) return snap.val();
+  } catch(e) {}
+  return null;
+}
+async function saveState(s) {
+  try { await db.ref("tripData").set(s); } catch(e) { console.error(e); }
+}
+
+const dateLabel = (d) => { const dt = new Date(d + "T00:00:00"); return `${String(dt.getMonth() + 1).padStart(2, "0")}/${String(dt.getDate()).padStart(2, "0")}(${"日一二三四五六"[dt.getDay()]})`; };
+const fmtTWD = (n) => "NT$" + Math.round(n || 0).toLocaleString();
+
+function TripPlanner() {
+  const [items, setItems] = useState(SEED_ITEMS);
+  const [days, setDays] = useState(SEED_DAYS);
+  const [infodata, setInfodata] = useState(SEED_INFO);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [loaded, setLoaded] = useState(false);
+  const [tab, setTab] = useState("days");
+  const [editing, setEditing] = useState(null);
+  const [dayNoteFor, setDayNoteFor] = useState(null);
+  const [showAddDays, setShowAddDays] = useState(false);
+
+  useEffect(() => { loadState().then((s) => { if (s) { setItems(s.items || SEED_ITEMS); setDays(s.days || SEED_DAYS); setInfodata(s.infodata || SEED_INFO); setSettings(s.settings || DEFAULT_SETTINGS); } setLoaded(true); }); }, []);
+  const persist = (patch) => saveState({ items, days, infodata, settings, ...patch });
+
+  // 換算成 TWD
+  const toTWD = useCallback((amount, cur) => (amount || 0) * (settings.currencies[cur] || 1), [settings]);
+
+  const upsertItem = (it) => {
+    let next; if (it.id && items.find((x) => x.id === it.id)) next = items.map((x) => (x.id === it.id ? it : x));
+    else next = [...items, { ...it, id: "i" + Date.now() }];
+    setItems(next); persist({ items: next }); setEditing(null);
+  };
+  const removeItem = (id) => { const n = items.filter((x) => x.id !== id); setItems(n); persist({ items: n }); setEditing(null); };
+  const addDays = (entries) => {
+    const nd = { ...days }; entries.forEach((e) => { if (e.date) nd[e.date] = e.title || ""; });
+    setDays(nd); persist({ days: nd }); setShowAddDays(false);
+  };
+  // 資訊庫：整個地點物件一起更新
+  const blankInfo = () => ({ links: [], note: "", summary: "" });
+  const updateInfo = (locId, patch) => {
+    const cur = infodata[locId] || blankInfo();
+    const next = { ...infodata, [locId]: { ...cur, ...patch } };
+    setInfodata(next); persist({ infodata: next });
+  };
+  const addLink = (locId, link) => {
+    const cur = infodata[locId] || blankInfo();
+    updateInfo(locId, { links: [...cur.links, { ...link, id: "l" + Date.now() }] });
+  };
+  const delLink = (locId, linkId) => {
+    const cur = infodata[locId] || blankInfo();
+    updateInfo(locId, { links: cur.links.filter((x) => x.id !== linkId) });
+  };
+  const saveSettings = (s) => { setSettings(s); persist({ settings: s }); };
+
+  const TABS = [{ k: "days", label: "每日行程" }, { k: "todo", label: "待辦預訂" }, { k: "cost", label: "旅遊費用" }, { k: "info", label: "資訊庫" }, { k: "set", label: "設定" }];
+
+  return (
+    <div style={{ fontFamily: "'Georgia','Songti TC',serif", background: PALETTE.bg, color: PALETTE.ink, minHeight: "100vh", padding: "0 0 60px" }}>
+      <style>{`
+        *{box-sizing:border-box;}
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;800&family=Noto+Serif+TC:wght@400;600&display=swap');
+        .tp-head{font-family:'Playfair Display','Noto Serif TC',serif;}
+        .tp-body{font-family:'Noto Serif TC','Georgia',serif;}
+        .tp-btn{cursor:pointer;border:none;transition:all .15s;}.tp-btn:hover{filter:brightness(.96);}
+        .tp-slot:hover{background:#f0e9db;}
+        input,select,textarea{font-family:'Noto Serif TC',serif;}
+      `}</style>
+
+      <div className="tp-head" style={{ background: `linear-gradient(105deg,${PALETTE.fr} 0%,${PALETTE.ch} 52%,${PALETTE.it} 100%)`, color: "#fbf8f1", padding: "24px 22px 20px" }}>
+        <div style={{ fontSize: 12, letterSpacing: 4, opacity: .85 }}>2026 · 跨國旅程</div>
+        <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4 }}>法 · 瑞 · 義 旅程總表</div>
+        <div className="tp-body" style={{ fontSize: 13, marginTop: 5, opacity: .9 }}>6/3 – 7/10 · 長輩團 6/13–6/23 同行</div>
+      </div>
+
+      <div className="tp-body" style={{ display: "flex", background: PALETTE.paper, borderBottom: `1px solid ${PALETTE.line}`, position: "sticky", top: 0, zIndex: 5 }}>
+        {TABS.map((t) => (
+          <button key={t.k} className="tp-btn" onClick={() => setTab(t.k)} style={{ flex: 1, padding: "13px 2px", fontSize: 13, fontWeight: tab === t.k ? 600 : 400, background: "transparent", color: tab === t.k ? PALETTE.ink : PALETTE.inkSoft, borderBottom: tab === t.k ? `3px solid ${PALETTE.gold}` : "3px solid transparent" }}>{t.label}</button>
+        ))}
+      </div>
+
+      <div style={{ padding: "18px 16px 0", maxWidth: 760, margin: "0 auto" }}>
+        {!loaded && <div className="tp-body" style={{ textAlign: "center", color: PALETTE.inkSoft, padding: 40 }}>讀取中…</div>}
+        {loaded && tab === "days" && <DayCards items={items} days={days} toTWD={toTWD} onEdit={setEditing} onAddSlot={(d, slot) => setEditing({ date: d, type: slot })} onAddDays={() => setShowAddDays(true)} />}
+        {loaded && tab === "todo" && <TodoView items={items} toTWD={toTWD} onEdit={setEditing} />}
+        {loaded && tab === "cost" && <CostView items={items} settings={settings} toTWD={toTWD} />}
+        {loaded && tab === "info" && <InfoLibrary days={days} items={items} infodata={infodata} onOpen={setDayNoteFor} />}
+        {loaded && tab === "set" && <Settings settings={settings} onSave={saveSettings} />}
+      </div>
+
+      {editing !== null && <ItemEditor item={editing} settings={settings} onSave={upsertItem} onDelete={removeItem} onClose={() => setEditing(null)} />}
+      {showAddDays && <AddDaysModal onSave={addDays} onClose={() => setShowAddDays(false)} />}
+      {dayNoteFor !== null && <LocInfoModal loc={dayNoteFor} info={infodata[dayNoteFor.id] || { links: [], note: "", summary: "" }} onAddLink={addLink} onDelLink={delLink} onUpdate={updateInfo} onClose={() => setDayNoteFor(null)} />}
+    </div>
+  );
+}
+
+// ===== 每日卡片 =====
+function DayCards({ items, days, toTWD, onEdit, onAddSlot, onAddDays }) {
+  const allDates = Array.from(new Set([...Object.keys(days), ...items.map((i) => i.date)])).sort();
+  return (
+    <div className="tp-body">
+      <button className="tp-btn" onClick={onAddDays} style={{ width: "100%", padding: 12, marginBottom: 16, borderRadius: 10, background: "transparent", border: `1.5px dashed ${PALETTE.gold}`, color: PALETTE.gold, fontSize: 14, fontWeight: 600 }}>＋ 新增天數（可一次多筆，自動依日期排序）</button>
+      {allDates.map((d) => <DayCard key={d} date={d} title={days[d]} dayItems={items.filter((i) => i.date === d)} toTWD={toTWD} onEdit={onEdit} onAddSlot={onAddSlot} />)}
+    </div>
+  );
+}
+
+function DayCard({ date, title, dayItems, toTWD, onEdit, onAddSlot }) {
+  const c = COUNTRY[(dayItems[0] || {}).country] || COUNTRY.fr;
+  const timed = dayItems.filter((i) => i.time).sort((a, b) => a.time.localeCompare(b.time));
+  const lodging = dayItems.filter((i) => i.type === "lodging");
+  const dayTotal = dayItems.reduce((s, i) => s + toTWD(i.amount, i.cur), 0);
+  const dayBooked = dayItems.filter((i) => i.status === "booked").reduce((s, i) => s + toTWD(i.paidAmount, i.cur), 0);
+
+  return (
+    <div style={{ background: PALETTE.paper, borderRadius: 14, marginBottom: 16, boxShadow: "0 1px 5px rgba(60,50,30,.07)", overflow: "hidden", borderTop: `3px solid ${c.color}` }}>
+      <div style={{ padding: "12px 16px 10px", borderBottom: `1px solid ${PALETTE.line}` }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <div>
+            <span className="tp-head" style={{ fontSize: 17, fontWeight: 700 }}>{dateLabel(date)}</span>
+            <span style={{ fontSize: 11, color: c.color, fontWeight: 600, marginLeft: 8 }}>{c.label}</span>
+          </div>
+          <span className="tp-head" style={{ fontSize: 14, fontWeight: 700 }}>{fmtTWD(dayTotal)}</span>
+        </div>
+        {title && <div style={{ fontSize: 13, color: PALETTE.ink, marginTop: 3, fontWeight: 600 }}>{title}</div>}
+        {/* 時間軸摘要 */}
+        {timed.length > 0 && (
+          <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 4, fontSize: 11, color: PALETTE.inkSoft, lineHeight: 1.6 }}>
+            {timed.map((it, idx) => (
+              <span key={it.id} style={{ display: "inline-flex", alignItems: "center" }}>
+                <b style={{ color: PALETTE.ink }}>{it.time}</b>&nbsp;{TYPE[it.type].icon}{it.title}
+                {idx < timed.length - 1 && <span style={{ margin: "0 5px", color: PALETTE.gold }}>→</span>}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", borderBottom: lodging.length ? `1px solid ${PALETTE.line}` : "none" }}>
+        {SLOTS.map((slot, i) => {
+          const hits = dayItems.filter((x) => x.type === slot.key);
+          return (
+            <div key={slot.key} className="tp-slot" style={{ flex: 1, padding: "10px 8px", borderLeft: i ? `1px solid ${PALETTE.line}` : "none", minHeight: 86, cursor: hits.length ? "default" : "pointer", transition: "background .15s" }} onClick={hits.length ? undefined : () => onAddSlot(date, slot.key)}>
+              <div style={{ fontSize: 10, color: PALETTE.inkSoft, marginBottom: 5, textAlign: "center" }}>{slot.icon} {slot.label}</div>
+              {hits.length === 0 && <div style={{ textAlign: "center", color: "#c9bda8", fontSize: 18, border: `1.5px dashed ${PALETTE.line}`, borderRadius: 8, padding: "4px 0" }}>＋</div>}
+              {hits.map((it) => {
+                const s = STATUS[it.status];
+                return (
+                  <div key={it.id} onClick={(e) => { e.stopPropagation(); onEdit(it); }} className="tp-btn" style={{ background: "#fff", borderRadius: 8, padding: "5px 6px", marginBottom: 4, border: `1px solid ${PALETTE.line}`, textAlign: "left" }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 600, lineHeight: 1.3 }}>{it.time ? it.time + " " : ""}{it.title}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 3 }}>
+                      <span style={{ fontSize: 8.5, padding: "1px 5px", borderRadius: 20, background: s.bg, color: s.color, fontWeight: 600 }}>{s.label}</span>
+                      <span style={{ fontSize: 10.5, fontWeight: 600, color: PALETTE.inkSoft }}>{it.cur} {it.amount}</span>
+                    </div>
+                    {it.splitMode && it.splitMode !== "none" && <div style={{ fontSize: 8.5, color: PALETTE.elder, marginTop: 2 }}>分攤</div>}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+
+      {lodging.map((it) => {
+        const s = STATUS[it.status];
+        return (
+          <button key={it.id} onClick={() => onEdit(it)} className="tp-btn" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 16px", background: "transparent", textAlign: "left", width: "100%" }}>
+            <span style={{ fontSize: 17 }}>🏨</span>
+            <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{it.title}{it.splitMode !== "none" && <span style={{ fontSize: 10, color: PALETTE.elder, marginLeft: 6 }}>分攤</span>}</span>
+            <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 20, background: s.bg, color: s.color, fontWeight: 600 }}>{s.label}</span>
+            <span style={{ fontSize: 12, fontWeight: 600 }}>{it.cur} {it.amount}</span>
+          </button>
+        );
+      })}
+
+      <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 16px", background: "#f0e9db", fontSize: 12 }}>
+        <span style={{ color: PALETTE.green }}>已花費 {fmtTWD(dayBooked)}</span>
+        <span style={{ color: PALETTE.amber }}>待付/預估 {fmtTWD(dayTotal - dayBooked)}</span>
+      </div>
+    </div>
+  );
+}
+
+// ===== 待辦（自動判斷）=====
+function TodoView({ items, toTWD, onEdit }) {
+  // 自動判斷：交通/門票/住宿 需預訂。有 Drive 連結+票號 => 視為完成
+  const isDone = (it) => it.qr && it.ref;
+  const bookable = items.filter((i) => i.type !== "food");
+  const pending = bookable.filter((i) => !isDone(i) && i.status !== "booked");
+  const done = bookable.filter((i) => isDone(i) || i.status === "booked");
+  pending.sort((a, b) => a.date.localeCompare(b.date));
+
+  const Card = ({ it, done }) => {
+    const t = TYPE[it.type], c = COUNTRY[it.country];
+    return (
+      <button onClick={() => onEdit(it)} className="tp-btn" style={{ display: "flex", alignItems: "center", gap: 11, background: PALETTE.paper, borderRadius: 12, padding: "12px 14px", marginBottom: 9, borderLeft: `4px solid ${done ? PALETTE.green : (it.status === "pending" ? PALETTE.amber : PALETTE.red)}`, boxShadow: "0 1px 4px rgba(60,50,30,.06)", textAlign: "left", width: "100%", opacity: done ? .72 : 1 }}>
+        <span style={{ fontSize: 20 }}>{done ? "✅" : t.icon}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, textDecoration: done ? "line-through" : "none" }}>{it.title}</div>
+          <div style={{ fontSize: 11, color: PALETTE.inkSoft, marginTop: 2 }}>{dateLabel(it.date)} · {c.label} · {done ? (it.ref ? "訂單 " + it.ref : "已預定") : it.note}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          {!done && <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 20, background: STATUS[it.status].bg, color: STATUS[it.status].color, fontWeight: 600 }}>{STATUS[it.status].label}</span>}
+          {done && it.qr && <span style={{ fontSize: 11, color: PALETTE.gold }}>🔗 票券</span>}
+          <div style={{ fontSize: 11, color: PALETTE.inkSoft, marginTop: 4 }}>{fmtTWD(toTWD(it.amount, it.cur))}</div>
+        </div>
+      </button>
+    );
+  };
+
+  return (
+    <div className="tp-body">
+      <div style={{ background: PALETTE.paper, borderRadius: 12, padding: 15, marginBottom: 16, border: `1px solid ${PALETTE.line}` }}>
+        <div className="tp-head" style={{ fontSize: 16, fontWeight: 600 }}>待辦預訂（自動判斷）</div>
+        <div style={{ fontSize: 12, color: PALETTE.inkSoft, marginTop: 4 }}>系統從每日行程抓出交通/門票/住宿。已填 Drive 連結＋訂單編號者自動標記完成。</div>
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: PALETTE.red, marginBottom: 8 }}>待處理（{pending.length}）</div>
+      {pending.length === 0 && <div style={{ textAlign: "center", color: PALETTE.green, padding: 20 }}>✓ 全部處理完畢</div>}
+      {pending.map((it) => <Card key={it.id} it={it} done={false} />)}
+      {done.length > 0 && <>
+        <div style={{ fontSize: 13, fontWeight: 600, color: PALETTE.green, margin: "18px 0 8px" }}>已完成（{done.length}）</div>
+        {done.map((it) => <Card key={it.id} it={it} done={true} />)}
+      </>}
+    </div>
+  );
+}
+
+// ===== 旅遊費用 =====
+// 計算每筆對某團的「實際負擔」與「結算」
+function computeShares(it, settings, toTWD) {
+  const total = toTWD(it.amount, it.cur);
+  const g = settings.groups;
+  if (!it.splitMode || it.splitMode === "none") {
+    // 不分攤：全歸 payer（預設小孩團）
+    const owner = it.payer || "kid";
+    return { kid: owner === "kid" ? total : 0, elder: owner === "elder" ? total : 0, delta: 0 };
+  }
+  let kidShare = 0, elderShare = 0;
+  if (it.splitMode === "head") {
+    // 當天兩團是否都在場 -> 大人總數
+    const inElder = it.date >= g.elder.start && it.date <= g.elder.end;
+    const denom = g.kid.adults + (inElder ? g.elder.adults : 0);
+    kidShare = total * g.kid.adults / denom;
+    elderShare = inElder ? total * g.elder.adults / denom : 0;
+  } else if (it.splitMode === "named") {
+    const ng = it.namedGroups && it.namedGroups.length ? it.namedGroups : ["kid"];
+    const denom = ng.reduce((s, k) => s + g[k].adults, 0);
+    if (ng.includes("kid")) kidShare = total * g.kid.adults / denom;
+    if (ng.includes("elder")) elderShare = total * g.elder.adults / denom;
+  }
+  // 結算：payer 先付全額，另一團該分的部分 => 欠 payer
+  const payer = it.payer || "kid";
+  let delta = 0; // >0 長輩團欠小孩團；<0 小孩團欠長輩團
+  if (payer === "kid") delta = elderShare;      // 小孩團代墊長輩團的份
+  else delta = -kidShare;                        // 長輩團代墊小孩團的份
+  return { kid: kidShare, elder: elderShare, delta };
+}
+
+function CostView({ items, settings, toTWD }) {
+  const m = useMemo(() => {
+    const total = items.reduce((s, i) => s + toTWD(i.amount, i.cur), 0);
+    const spent = items.filter((i) => i.status === "booked").reduce((s, i) => s + toTWD(i.paidAmount, i.cur), 0);
+    const cats = ["transport", "ticket", "lodging", "food"];
+    const byCat = cats.map((c) => {
+      const list = items.filter((i) => i.type === c);
+      return { type: c, budget: list.reduce((s, i) => s + toTWD(i.amount, i.cur), 0), spent: list.filter((i) => i.status === "booked").reduce((s, i) => s + toTWD(i.paidAmount, i.cur), 0) };
+    });
+    // 分攤段
+    const shareItems = items.filter((i) => i.splitMode && i.splitMode !== "none");
+    const perGroup = { kid: { transport: 0, ticket: 0, lodging: 0, food: 0 }, elder: { transport: 0, ticket: 0, lodging: 0, food: 0 } };
+    shareItems.forEach((it) => {
+      const r = computeShares(it, settings, toTWD);
+      perGroup.kid[it.type] += r.kid; perGroup.elder[it.type] += r.elder;
+    });
+    return { total, spent, byCat, perGroup, shareCount: shareItems.length };
+  }, [items, settings, toTWD]);
+
+  const g = settings.groups;
+  const catSum = (obj) => obj.transport + obj.ticket + obj.lodging + obj.food;
+
+  return (
+    <div className="tp-body">
+      {/* 總覽 */}
+      <div style={{ background: PALETTE.paper, borderRadius: 14, padding: 18, marginBottom: 14, border: `1px solid ${PALETTE.line}` }}>
+        <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ flex: 1, textAlign: "center", padding: "8px 4px", background: "#f0e9db", borderRadius: 10 }}>
+            <div style={{ fontSize: 11, color: PALETTE.inkSoft }}>總預算（含預估）</div>
+            <div className="tp-head" style={{ fontSize: 19, fontWeight: 800, marginTop: 3 }}>{fmtTWD(m.total)}</div>
+          </div>
+          <div style={{ flex: 1, textAlign: "center", padding: "8px 4px", background: "#e8f0e6", borderRadius: 10 }}>
+            <div style={{ fontSize: 11, color: PALETTE.inkSoft }}>已花費</div>
+            <div className="tp-head" style={{ fontSize: 19, fontWeight: 800, marginTop: 3, color: PALETTE.green }}>{fmtTWD(m.spent)}</div>
+          </div>
+        </div>
+        <div style={{ fontSize: 11, color: PALETTE.inkSoft, textAlign: "center", marginTop: 8 }}>設定總預算 {fmtTWD(settings.totalBudget)} · 餘 {fmtTWD(settings.totalBudget - m.total)}</div>
+      </div>
+
+      {/* 分類 */}
+      <div style={{ background: PALETTE.paper, borderRadius: 14, padding: 18, marginBottom: 14, border: `1px solid ${PALETTE.line}` }}>
+        <div className="tp-head" style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>分類：總預算 vs 已花費</div>
+        {m.byCat.map((c) => (
+          <div key={c.type} style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+              <span>{TYPE[c.type].icon} {TYPE[c.type].label}</span>
+              <span style={{ color: PALETTE.inkSoft }}>已花費 {fmtTWD(c.spent)} / 預算 {fmtTWD(c.budget)}</span>
+            </div>
+            <div style={{ height: 8, background: PALETTE.line, borderRadius: 6, overflow: "hidden", position: "relative" }}>
+              <div style={{ width: `${Math.min(100, c.budget ? c.spent / c.budget * 100 : 0)}%`, height: "100%", background: PALETTE.green, position: "absolute" }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 分攤段 */}
+      <div style={{ background: "#faf6f1", borderRadius: 14, padding: 18, border: `1.5px solid #d8c4dd` }}>
+        <div className="tp-head" style={{ fontSize: 15, fontWeight: 600, color: PALETTE.elder }}>分攤段 · {g.elder.start.slice(5).replace("-", "/")} ~ {g.elder.end.slice(5).replace("-", "/")}</div>
+        <div style={{ fontSize: 11, color: PALETTE.inkSoft, marginTop: 3, marginBottom: 14 }}>每筆可選大人人頭／實名計算 · 共 {m.shareCount} 筆分攤</div>
+
+        <GroupBlock title={g.elder.label} color={PALETTE.elder} adults={g.elder.adults} data={m.perGroup.elder} sum={catSum(m.perGroup.elder)} />
+        <GroupBlock title={g.kid.label} color={PALETTE.kid} adults={g.kid.adults} data={m.perGroup.kid} sum={catSum(m.perGroup.kid)} />
+      </div>
+    </div>
+  );
+}
+
+function GroupBlock({ title, color, adults, data, sum }) {
+  return (
+    <div style={{ background: "#fff", borderRadius: 10, padding: "12px 14px", marginBottom: 10, borderLeft: `4px solid ${color}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color }}>{title}（{adults} 大人）</span>
+        <span className="tp-head" style={{ fontSize: 15, fontWeight: 700 }}>{fmtTWD(sum)}</span>
+      </div>
+      <div style={{ display: "flex", gap: 6, fontSize: 11 }}>
+        {["transport", "ticket", "lodging", "food"].map((k) => (
+          <div key={k} style={{ flex: 1, textAlign: "center", background: "#f7f2ea", borderRadius: 7, padding: "5px 2px" }}>
+            <div style={{ color: PALETTE.inkSoft }}>{TYPE[k].icon}{TYPE[k].label}</div>
+            <div style={{ fontWeight: 600, marginTop: 2 }}>{fmtTWD(data[k])}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ===== AI 呼叫（artifact 內建）=====
+async function callAI(prompt) {
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+    });
+    const data = await res.json();
+    return data.content.filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
+  } catch (e) { return "（AI 產生失敗，請稍後再試）"; }
+}
+
+// 影片連結 -> 嵌入網址
+function ytEmbed(url) {
+  if (!url) return null;
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{11})/);
+  return m ? `https://www.youtube.com/embed/${m[1]}` : null;
+}
+
+// 資訊類別標籤
+const INFO_CAT = {
+  ticket:    { label: "門票資訊", icon: "🎫" },
+  food:      { label: "美食", icon: "🍽️" },
+  transport: { label: "交通", icon: "🚇" },
+  general:   { label: "一般", icon: "📝" },
+};
+
+// ===== 資訊庫（天 → 地點卡，自動連動每日行程項目）=====
+function InfoLibrary({ days, items, infodata, onOpen }) {
+  const dates = Array.from(new Set([...Object.keys(days), ...items.map((i) => i.date)])).sort();
+  const [openDays, setOpenDays] = useState(() => dates.reduce((a, d) => ({ ...a, [d]: true }), {}));
+  const toggle = (d) => setOpenDays((p) => ({ ...p, [d]: !p[d] }));
+
+  return (
+    <div className="tp-body">
+      <div style={{ fontSize: 12, color: PALETTE.inkSoft, marginBottom: 14 }}>地點卡自動對應每日行程項目。點任一地點 → 收集多個連結、寫筆記、產出 AI 速讀。</div>
+      {dates.map((d) => {
+        const locs = items.filter((i) => i.date === d);
+        const dayOpen = openDays[d];
+        return (
+          <div key={d} style={{ marginBottom: 14 }}>
+            <button className="tp-btn" onClick={() => toggle(d)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", textAlign: "left", background: "transparent", padding: "4px 2px" }}>
+              <span className="tp-head" style={{ fontSize: 15, fontWeight: 700 }}>{dateLabel(d)} {days[d]}</span>
+              <span style={{ fontSize: 12, color: PALETTE.inkSoft }}>{dayOpen ? "▲" : "▼"} {locs.length} 地點</span>
+            </button>
+            {dayOpen && (locs.length === 0
+              ? <div style={{ fontSize: 12, color: "#c9bda8", padding: "8px 4px" }}>這天還沒有行程項目，先到「每日行程」新增。</div>
+              : locs.map((loc) => {
+                const info = infodata[loc.id] || { links: [], note: "", summary: "" };
+                const n = info.links.length;
+                return (
+                  <button key={loc.id} onClick={() => onOpen(loc)} className="tp-btn" style={{ display: "block", width: "100%", textAlign: "left", background: PALETTE.paper, borderRadius: 12, padding: "12px 14px", marginTop: 8, boxShadow: "0 1px 4px rgba(60,50,30,.06)", borderLeft: `4px solid ${(COUNTRY[loc.country] || COUNTRY.fr).color}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 14, fontWeight: 600 }}>{TYPE[loc.type].icon} {loc.title}</span>
+                      <span style={{ fontSize: 11, color: n ? PALETTE.gold : "#c9bda8" }}>{n ? `🔗 ${n} 連結${info.summary ? " · ⚡速讀" : ""}` : "＋ 放資料"}</span>
+                    </div>
+                    {info.summary && <div style={{ fontSize: 12, color: PALETTE.ink, marginTop: 7, padding: "7px 9px", background: "#f3eee2", borderRadius: 8, lineHeight: 1.6 }}>⚡ {info.summary.slice(0, 80)}{info.summary.length > 80 ? "…" : ""}</div>}
+                  </button>
+                );
+              }))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ===== 設定 =====
+function Settings({ settings, onSave }) {
+  const [s, setS] = useState(JSON.parse(JSON.stringify(settings)));
+  const inp = { width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${PALETTE.line}`, fontSize: 14, background: "#fff", marginTop: 4 };
+  const lbl = { fontSize: 12, color: PALETTE.inkSoft, fontWeight: 600 };
+  const setCur = (k, v) => setS((p) => ({ ...p, currencies: { ...p.currencies, [k]: +v } }));
+  const setGroup = (gk, field, v) => setS((p) => ({ ...p, groups: { ...p.groups, [gk]: { ...p.groups[gk], [field]: field === "adults" ? +v : v } } }));
+
+  return (
+    <div className="tp-body">
+      <div style={{ background: PALETTE.paper, borderRadius: 14, padding: 18, marginBottom: 14, border: `1px solid ${PALETTE.line}` }}>
+        <div className="tp-head" style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}>總預算</div>
+        <input type="number" value={s.totalBudget} onChange={(e) => setS((p) => ({ ...p, totalBudget: +e.target.value }))} style={inp} />
+      </div>
+
+      <div style={{ background: PALETTE.paper, borderRadius: 14, padding: 18, marginBottom: 14, border: `1px solid ${PALETTE.line}` }}>
+        <div className="tp-head" style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>幣別匯率（對 TWD，手動輸入）</div>
+        <div style={{ fontSize: 11, color: PALETTE.inkSoft, marginBottom: 10 }}>例：1 EUR = 35 TWD 就填 35</div>
+        {Object.keys(s.currencies).map((k) => (
+          <div key={k} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <span style={{ width: 50, fontWeight: 600 }}>{k}</span>
+            <input type="number" value={s.currencies[k]} disabled={k === "TWD"} onChange={(e) => setCur(k, e.target.value)} style={{ ...inp, marginTop: 0, opacity: k === "TWD" ? .5 : 1 }} />
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: PALETTE.paper, borderRadius: 14, padding: 18, marginBottom: 18, border: `1px solid ${PALETTE.line}` }}>
+        <div className="tp-head" style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}>團體設定（分攤計算用）</div>
+        {["kid", "elder"].map((gk) => (
+          <div key={gk} style={{ marginBottom: 14, padding: 12, background: "#f7f2ea", borderRadius: 10 }}>
+            <div style={lbl}>名稱</div><input value={s.groups[gk].label} onChange={(e) => setGroup(gk, "label", e.target.value)} style={inp} />
+            <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+              <div style={{ width: 90 }}><div style={lbl}>大人數</div><input type="number" value={s.groups[gk].adults} onChange={(e) => setGroup(gk, "adults", e.target.value)} style={inp} /></div>
+              <div style={{ flex: 1 }}><div style={lbl}>在場起</div><input type="date" value={s.groups[gk].start} onChange={(e) => setGroup(gk, "start", e.target.value)} style={inp} /></div>
+              <div style={{ flex: 1 }}><div style={lbl}>在場迄</div><input type="date" value={s.groups[gk].end} onChange={(e) => setGroup(gk, "end", e.target.value)} style={inp} /></div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button className="tp-btn" onClick={() => onSave(s)} style={{ width: "100%", padding: 13, borderRadius: 10, background: PALETTE.ink, color: "#fbf8f1", fontSize: 15, fontWeight: 600 }}>儲存設定</button>
+    </div>
+  );
+}
+
+// ===== Modals =====
+function ItemEditor({ item, settings, onSave, onDelete, onClose }) {
+  const [f, setF] = useState({
+    date: item.date || "2026-06-13", country: item.country || "ch", type: item.type || "transport",
+    title: item.title || "", time: item.time || "", status: item.status || "todo",
+    cur: item.cur || "EUR", amount: item.amount || 0, paidAmount: item.paidAmount || 0,
+    ref: item.ref || "", qr: item.qr || "", note: item.note || "",
+    splitMode: item.splitMode || "none", payer: item.payer || "kid", namedGroups: item.namedGroups || ["kid", "elder"],
+    id: item.id,
+  });
+  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+  const inp = { width: "100%", padding: "9px 11px", borderRadius: 8, border: `1px solid ${PALETTE.line}`, fontSize: 14, background: "#fff", marginTop: 4 };
+  const lbl = { fontSize: 12, color: PALETTE.inkSoft, fontWeight: 600 };
+  const g = settings.groups;
+  const toggleNamed = (k) => set("namedGroups", f.namedGroups.includes(k) ? f.namedGroups.filter((x) => x !== k) : [...f.namedGroups, k]);
+
+  return (
+    <Modal onClose={onClose} title={item.id ? "編輯項目" : "新增項目"}>
+      <Row>
+        <div style={{ flex: 1 }}><div style={lbl}>日期</div><input type="date" value={f.date} onChange={(e) => set("date", e.target.value)} style={inp} /></div>
+        <div style={{ width: 90 }}><div style={lbl}>時間</div><input value={f.time} placeholder="09:00" onChange={(e) => set("time", e.target.value)} style={inp} /></div>
+      </Row>
+      <Row>
+        <div style={{ flex: 1 }}><div style={lbl}>國家</div><select value={f.country} onChange={(e) => set("country", e.target.value)} style={inp}>{Object.entries(COUNTRY).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></div>
+        <div style={{ flex: 1 }}><div style={lbl}>類型</div><select value={f.type} onChange={(e) => set("type", e.target.value)} style={inp}>{Object.entries(TYPE).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}</select></div>
+      </Row>
+      <div style={{ marginTop: 10 }}><div style={lbl}>名稱</div><input value={f.title} onChange={(e) => set("title", e.target.value)} style={inp} /></div>
+      <div style={{ marginTop: 10 }}><div style={lbl}>狀態</div><select value={f.status} onChange={(e) => set("status", e.target.value)} style={inp}>{Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></div>
+      <Row>
+        <div style={{ width: 90 }}><div style={lbl}>幣別</div><select value={f.cur} onChange={(e) => set("cur", e.target.value)} style={inp}>{Object.keys(settings.currencies).map((k) => <option key={k} value={k}>{k}</option>)}</select></div>
+        <div style={{ flex: 1 }}><div style={lbl}>金額（全額）</div><input type="number" value={f.amount} onChange={(e) => set("amount", +e.target.value)} style={inp} /></div>
+        <div style={{ flex: 1 }}><div style={lbl}>已付</div><input type="number" value={f.paidAmount} onChange={(e) => set("paidAmount", +e.target.value)} style={inp} /></div>
+      </Row>
+      <div style={{ fontSize: 11, color: PALETTE.inkSoft, marginTop: 5 }}>≈ {fmtTWD(f.amount * (settings.currencies[f.cur] || 1))}</div>
+
+      {/* 分攤 */}
+      <div style={{ marginTop: 14, padding: 12, borderRadius: 10, background: "#faf6f1", border: "1px solid #d8c4dd" }}>
+        <div style={{ ...lbl, color: PALETTE.elder }}>分攤計算方式</div>
+        <select value={f.splitMode} onChange={(e) => set("splitMode", e.target.value)} style={inp}>
+          <option value="none">不分攤（全歸付款方）</option>
+          <option value="head">大人人頭（依當天在場大人數平分）</option>
+          <option value="named">實名計算（指定哪些團參與）</option>
+        </select>
+        {f.splitMode !== "none" && (
+          <div style={{ marginTop: 10 }}>
+            <div style={lbl}>誰先付的</div>
+            <select value={f.payer} onChange={(e) => set("payer", e.target.value)} style={inp}>
+              <option value="kid">{g.kid.label}先付</option>
+              <option value="elder">{g.elder.label}先付</option>
+            </select>
+            {f.splitMode === "named" && (
+              <div style={{ marginTop: 10 }}>
+                <div style={lbl}>參與分攤的團</div>
+                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                  {["kid", "elder"].map((k) => (
+                    <label key={k} style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", borderRadius: 8, border: `1px solid ${f.namedGroups.includes(k) ? PALETTE.elder : PALETTE.line}`, background: f.namedGroups.includes(k) ? "#f0e6f2" : "#fff", fontSize: 13, cursor: "pointer" }}>
+                      <input type="checkbox" checked={f.namedGroups.includes(k)} onChange={() => toggleNamed(k)} /> {g[k].label}（{g[k].adults}）
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            {f.splitMode === "head" && <div style={{ fontSize: 11, color: PALETTE.elder, marginTop: 8 }}>系統會依 {f.date} 當天兩團在場的大人總數自動平分。</div>}
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginTop: 10 }}><div style={lbl}>訂單編號</div><input value={f.ref} onChange={(e) => set("ref", e.target.value)} style={inp} /></div>
+      <div style={{ marginTop: 10 }}><div style={lbl}>票券 / QRcode 連結（Google Drive）</div><input value={f.qr} placeholder="https://drive.google.com/…" onChange={(e) => set("qr", e.target.value)} style={inp} /></div>
+      <div style={{ fontSize: 11, color: f.ref && f.qr ? PALETTE.green : PALETTE.inkSoft, marginTop: 5 }}>{f.ref && f.qr ? "✓ 已有訂單編號＋連結，待辦會自動標記完成" : "填入訂單編號＋Drive 連結後，此項會在待辦自動標完成"}</div>
+      <div style={{ marginTop: 10 }}><div style={lbl}>備註</div><textarea value={f.note} onChange={(e) => set("note", e.target.value)} style={{ ...inp, minHeight: 50, resize: "vertical" }} /></div>
+      {f.qr && <a href={f.qr} target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: 10, color: PALETTE.gold, fontSize: 13 }}>🔗 開啟票券連結</a>}
+      <EditorButtons hasId={!!item.id} onSave={() => onSave(f)} onDelete={() => onDelete(item.id)} onClose={onClose} />
+    </Modal>
+  );
+}
+
+function AddDaysModal({ onSave, onClose }) {
+  const [rows, setRows] = useState([{ date: "", title: "" }]);
+  const inp = { width: "100%", padding: "9px 11px", borderRadius: 8, border: `1px solid ${PALETTE.line}`, fontSize: 14, background: "#fff" };
+  const set = (i, k, v) => setRows((p) => p.map((r, idx) => (idx === i ? { ...r, [k]: v } : r)));
+  return (
+    <Modal onClose={onClose} title="新增天數（可多筆）">
+      <div style={{ fontSize: 12, color: PALETTE.inkSoft, marginBottom: 12 }}>填日期與當天大標，例如 06/03 → 台北→巴黎。儲存後自動依日期排序。</div>
+      {rows.map((r, i) => (
+        <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <input type="date" value={r.date} onChange={(e) => set(i, "date", e.target.value)} style={{ ...inp, width: 150 }} />
+          <input placeholder="當天大標" value={r.title} onChange={(e) => set(i, "title", e.target.value)} style={inp} />
+        </div>
+      ))}
+      <button className="tp-btn" onClick={() => setRows([...rows, { date: "", title: "" }])} style={{ width: "100%", padding: 9, borderRadius: 8, background: "transparent", border: `1.5px dashed ${PALETTE.gold}`, color: PALETTE.gold, fontSize: 13, marginTop: 4 }}>＋ 再加一列</button>
+      <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+        <button className="tp-btn" onClick={() => onSave(rows)} style={{ flex: 1, padding: 12, borderRadius: 10, background: PALETTE.ink, color: "#fbf8f1", fontSize: 15, fontWeight: 600 }}>儲存</button>
+        <button className="tp-btn" onClick={onClose} style={{ padding: "12px 16px", borderRadius: 10, background: PALETTE.line, fontSize: 14 }}>取消</button>
+      </div>
+    </Modal>
+  );
+}
+
+function LocInfoModal({ loc, info, onAddLink, onDelLink, onUpdate, onClose }) {
+  const [nl, setNl] = useState({ title: "", cat: "general", url: "" }); // 新連結
+  const [note, setNote] = useState(info.note || "");
+  const [busy, setBusy] = useState(false);
+  const inp = { width: "100%", padding: "9px 11px", borderRadius: 8, border: `1px solid ${PALETTE.line}`, fontSize: 14, background: "#fff", marginTop: 4 };
+  const lbl = { fontSize: 12, color: PALETTE.inkSoft, fontWeight: 600 };
+  const place = loc.title;
+
+  const addLink = () => {
+    if (!nl.title && !nl.url) return;
+    onAddLink(loc.id, { title: nl.title || nl.url, cat: nl.cat, url: nl.url });
+    setNl({ title: "", cat: "general", url: "" });
+  };
+  const saveNote = () => onUpdate(loc.id, { note });
+  const genSummary = async () => {
+    setBusy(true);
+    const linkList = info.links.map((l, i) => `${i + 1}. [${(INFO_CAT[l.cat] || INFO_CAT.general).label}] ${l.title}${l.url ? " (" + l.url + ")" : ""}`).join("\n") || "（無連結）";
+    const txt = await callAI(`你是懂門路的旅遊朋友。以下是我為「${place}」收集的資料。請用繁體中文寫一段「速讀總覽」(約 2–4 句)，幫我快速掌握這個地點該注意什麼、最佳安排(例如推薦的到訪時段、哪個入口、要避開什麼)。\n注意：你只看得到連結標題與我的筆記，看不到連結內頁，請據此歸納並可點出還缺哪類資訊。只回總覽本身，不要前言。\n\n【收集的連結】\n${linkList}\n\n【我的筆記】\n${note || "（無）"}`);
+    onUpdate(loc.id, { summary: txt });
+    setBusy(false);
+  };
+
+  return (
+    <Modal onClose={onClose} title={`${TYPE[loc.type].icon} ${place}`}>
+      <div style={{ fontSize: 12, color: PALETTE.inkSoft, marginTop: -8, marginBottom: 14 }}>{dateLabel(loc.date)} · {(COUNTRY[loc.country] || {}).label}</div>
+
+      {/* 第一層：連結櫃 */}
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>🔗 連結櫃</div>
+        {info.links.length === 0 && <div style={{ fontSize: 12, color: "#c9bda8", marginBottom: 8 }}>還沒有連結，從下方加入第一個。</div>}
+        {info.links.map((l) => {
+          const cat = INFO_CAT[l.cat] || INFO_CAT.general;
+          const embed = ytEmbed(l.url);
+          return (
+            <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 8, background: "#f7f2ea", borderRadius: 10, padding: "9px 11px", marginBottom: 7 }}>
+              <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 20, background: "#fff", color: PALETTE.inkSoft, whiteSpace: "nowrap" }}>{cat.icon}{cat.label}</span>
+              <a href={l.url || "#"} target="_blank" rel="noreferrer" onClick={(e) => { if (!l.url) e.preventDefault(); }} style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: l.url ? PALETTE.gold : PALETTE.ink, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{embed ? "▶ " : l.url ? "🔗 " : ""}{l.title}</a>
+              <span className="tp-btn" onClick={() => onDelLink(loc.id, l.id)} style={{ fontSize: 11, color: PALETTE.red, whiteSpace: "nowrap" }}>刪</span>
+            </div>
+          );
+        })}
+        {/* 加連結 */}
+        <div style={{ background: "#fff", border: `1px dashed ${PALETTE.gold}`, borderRadius: 10, padding: 12, marginTop: 8 }}>
+          <input value={nl.title} placeholder="連結名稱（例：Klook 免排隊攻略）" onChange={(e) => setNl({ ...nl, title: e.target.value })} style={{ ...inp, marginTop: 0 }} />
+          <input value={nl.url} placeholder="https://…（網頁 / 地圖 / YouTube）" onChange={(e) => setNl({ ...nl, url: e.target.value })} style={inp} />
+          <div style={{ display: "flex", gap: 5, marginTop: 8 }}>
+            {Object.entries(INFO_CAT).map(([k, v]) => (
+              <button key={k} className="tp-btn" onClick={() => setNl({ ...nl, cat: k })} style={{ flex: 1, padding: "6px 2px", borderRadius: 7, fontSize: 10.5, background: nl.cat === k ? PALETTE.gold : "#faf6ee", color: nl.cat === k ? "#fff" : PALETTE.inkSoft, border: `1px solid ${nl.cat === k ? PALETTE.gold : PALETTE.line}` }}>{v.icon}{v.label}</button>
+            ))}
+          </div>
+          <button className="tp-btn" onClick={addLink} style={{ width: "100%", padding: 9, borderRadius: 8, background: PALETTE.gold, color: "#fff", fontSize: 13, fontWeight: 600, marginTop: 10 }}>＋ 加入連結</button>
+        </div>
+      </div>
+
+      {/* 第二層：我的筆記 */}
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>📝 我的筆記</div>
+        <textarea value={note} onChange={(e) => setNote(e.target.value)} onBlur={saveNote} placeholder="自己的想法、提醒（例：記得帶學生證）。也可把文章內文貼這裡，AI 速讀會更準。" style={{ ...inp, marginTop: 0, minHeight: 70, resize: "vertical" }} />
+        <div style={{ fontSize: 11, color: PALETTE.inkSoft, marginTop: 4 }}>離開輸入框自動儲存</div>
+      </div>
+
+      {/* 第三層：AI 速讀 */}
+      <div style={{ background: "#f3eee2", borderRadius: 10, padding: "12px 14px", border: `1px solid ${PALETTE.gold}33` }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: PALETTE.gold }}>⚡ 此地點 AI 速讀</span>
+          <button className="tp-btn" disabled={busy || (!info.links.length && !note)} onClick={genSummary} style={{ fontSize: 12, padding: "5px 12px", borderRadius: 20, background: (info.links.length || note) ? PALETTE.gold : PALETTE.line, color: "#fff", fontWeight: 600 }}>{busy ? "產生中…" : info.summary ? "重新產生" : "產生速讀"}</button>
+        </div>
+        {info.summary ? <div style={{ fontSize: 13, color: PALETTE.ink, marginTop: 8, lineHeight: 1.7 }}>{info.summary}</div>
+          : <div style={{ fontSize: 12, color: PALETTE.inkSoft, marginTop: 6 }}>{(info.links.length || note) ? "讀完連結標題＋你的筆記後產出速讀" : "先加連結或寫筆記"}</div>}
+        <div style={{ fontSize: 10.5, color: PALETTE.inkSoft, marginTop: 8, lineHeight: 1.5 }}>※ 網頁 AI 看不到連結內頁，速讀依連結標題＋你的筆記歸納。要逐篇讀完內容，可把連結丟回對話讓我代讀。</div>
+      </div>
+    </Modal>
+  );
+}
+
+function Modal({ children, title, onClose }) {
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(40,33,25,.45)", zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div className="tp-body" onClick={(e) => e.stopPropagation()} style={{ background: PALETTE.paper, borderRadius: "18px 18px 0 0", padding: 22, width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto" }}>
+        <div className="tp-head" style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>{title}</div>
+        {children}
+      </div>
+    </div>
+  );
+}
+function Row({ children }) { return <div style={{ display: "flex", gap: 10, marginTop: 10 }}>{children}</div>; }
+function EditorButtons({ hasId, onSave, onDelete, onClose }) {
+  return (
+    <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+      <button className="tp-btn" onClick={onSave} style={{ flex: 1, padding: 12, borderRadius: 10, background: PALETTE.ink, color: "#fbf8f1", fontSize: 15, fontWeight: 600 }}>儲存</button>
+      {hasId && <button className="tp-btn" onClick={onDelete} style={{ padding: "12px 16px", borderRadius: 10, background: "#f6e3df", color: PALETTE.red, fontSize: 14 }}>刪除</button>}
+      <button className="tp-btn" onClick={onClose} style={{ padding: "12px 16px", borderRadius: 10, background: PALETTE.line, color: PALETTE.ink, fontSize: 14 }}>取消</button>
+    </div>
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(TripPlanner));
+
+  </script>
+</body>
+</html>
