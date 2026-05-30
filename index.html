@@ -1312,9 +1312,11 @@ function TripPlanner() {
     toTWD: toTWD,
     onEdit: setEditing,
     onAddSlot: function onAddSlot(d, slot) {
+      var _dc = (days[d] && typeof days[d] === "object" && days[d].country) || (items.find(function(it){ return it.date === d; }) || {}).country || "fr";
       return setEditing({
         date: d,
-        type: slot
+        type: slot,
+        country: _dc
       });
     },
     onAddDays: function onAddDays() {
@@ -4484,7 +4486,7 @@ function ItemEditor(_ref29) {
     travelers = _ref29.travelers;
   var _useState69 = useState({
       date: item.date || "2026-06-13",
-      country: item.country || "ch",
+      country: item.country || "fr",
       type: item.type || "transport",
       title: item.title || "",
       time: item.time || "",
