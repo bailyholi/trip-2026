@@ -828,6 +828,23 @@ const WMO_ICON = {
 };
 
 const LOCAL_KEY = "trip2026_data";
+let _lastTs = 0; // 自己最後寫入/套用的時間戳，做「時鐘無關」的回音偵測
+
+// 連線失敗時在畫面頂端跳紅字（家人在外面一眼就知道是連線問題，不會傻看舊資料）
+function setFbStatus(s) {
+  try {
+    var el = document.getElementById("_fbBanner");
+    if (s === "error") {
+      if (!el && document.body) {
+        el = document.createElement("div");
+        el.id = "_fbBanner";
+        el.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;font:13px/1.5 sans-serif;text-align:center;padding:8px 12px;box-shadow:0 2px 6px rgba(0,0,0,.25);";
+        el.textContent = "\u26a0\ufe0f \u96f2\u7aef\u540c\u6b65\u9023\u7dda\u5931\u6557\uff0c\u756b\u9762\u53ef\u80fd\u662f\u820a\u8cc7\u6599\u3002\u8acb\u6aa2\u67e5\u7db2\u8def\uff1b\u82e5\u6301\u7e8c\u51fa\u73fe\uff0c\u8acb\u806f\u7d61\u97cb\u6bc5\u6aa2\u67e5 Firebase \u8a2d\u5b9a\u3002";
+        document.body.appendChild(el);
+      }
+    } else if (el) { el.remove(); }
+  } catch(e) {}
+}
 
 function initFb() {
   if (window._fbDb) return window._fbDb;
@@ -837,43 +854,52 @@ function initFb() {
     if (!firebase.apps.length) firebase.initializeApp(cfg);
     window._fbDb = firebase.database();
     return window._fbDb;
-  } catch(e) { return null; }
+  } catch(e) { setFbStatus("error"); return null; }
 }
 
 // 初次載入：先用 localStorage 快速顯示，再用 Firebase 覆蓋
 async function loadState() {
-  // 先試 localStorage 快速顯示
   let localData = null;
   try {
     const raw = localStorage.getItem(LOCAL_KEY);
-    if (raw) { const p = JSON.parse(raw); if (p && p.items) localData = p; }
+    if (raw) { const p = JSON.parse(raw); if (p && p.items) { localData = p; _lastTs = p._ts || 0; } }
   } catch(e) {}
 
-  // 嘗試 Firebase（最多等 6 秒）
   const db = initFb();
   if (db) {
     try {
-      const timeout = new Promise(resolve => setTimeout(() => resolve(null), 6000));
+      const timeout = new Promise(resolve => setTimeout(() => resolve("__timeout__"), 6000));
       const fbPromise = db.ref("tripData").get()
         .then(s => s.exists() ? s.val() : null)
-        .catch(() => null);
+        .catch(err => { console.error("FB load error:", err); return "__error__"; });
       const fbData = await Promise.race([fbPromise, timeout]);
-      if (fbData && fbData.items) {
-        // Firebase 有資料，存到 localStorage 並回傳
+      if (fbData === "__timeout__" || fbData === "__error__") {
+        setFbStatus("error"); // 連不上 / 規則擋住 / 逾時 → 跳紅字
+      } else if (fbData && fbData.items) {
         try { localStorage.setItem(LOCAL_KEY, JSON.stringify(fbData)); } catch(e) {}
+        _lastTs = fbData._ts || 0;
+        setFbStatus("ok");
         return fbData;
+      } else {
+        setFbStatus("ok"); // 連到了但雲端還沒資料（第一次用）
       }
-    } catch(e) {}
+    } catch(e) { setFbStatus("error"); }
   }
   return localData;
 }
 
 // 儲存：同時寫 localStorage + Firebase
 async function saveState(s) {
-  const data = { ...s, _ts: Date.now() };
+  const ts = Date.now();
+  const data = { ...s, _ts: ts };
+  _lastTs = ts; // 記住自己寫的，回音偵測用
   try { localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); } catch(e) {}
   const db = initFb();
-  if (db) { db.ref("tripData").set(data).catch(e => console.error("FB:", e)); }
+  if (db) {
+    db.ref("tripData").set(data)
+      .then(() => setFbStatus("ok"))
+      .catch(e => { console.error("FB save error:", e); setFbStatus("error"); });
+  }
 }
 
 // 設定 Firebase 即時監聽（給其他裝置同步用）
@@ -886,17 +912,14 @@ function setupRealtimeSync(onUpdate) {
     if (snap.exists()) {
       const fbData = snap.val();
       if (fbData && fbData.items && fbData._ts) {
-        try {
-          const local = localStorage.getItem(LOCAL_KEY);
-          const localTs = local ? (JSON.parse(local)._ts || 0) : 0;
-          if (fbData._ts > localTs + 2000) { // 別人更新的（差距>2秒）
-            localStorage.setItem(LOCAL_KEY, JSON.stringify(fbData));
-            onUpdate(fbData); // 通知 React 更新
-          }
-        } catch(e) {}
+        if (fbData._ts === _lastTs) return; // 自己剛寫的回音，跳過（時鐘無關，不再用 +2000 秒比大小）
+        try { localStorage.setItem(LOCAL_KEY, JSON.stringify(fbData)); } catch(e) {}
+        _lastTs = fbData._ts; // 更新基準，避免重複套用
+        setFbStatus("ok");
+        onUpdate(fbData); // 通知 React 更新
       }
     }
-  });
+  }, err => { console.error("FB sync error:", err); setFbStatus("error"); });
 }
 </script><script>"use strict";
 
@@ -920,6 +943,7 @@ function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) 
 function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
+var dayText = function dayText(v) { return v && typeof v === "object" ? v.title || "" : v || ""; };
 var dateLabel = function dateLabel(d) {
   var dt = new Date(d + "T00:00:00");
   return "".concat(String(dt.getMonth() + 1).padStart(2, "0"), "/").concat(String(dt.getDate()).padStart(2, "0"), "(").concat("日一二三四五六"[dt.getDay()], ")");
@@ -2502,7 +2526,7 @@ function InfoLibrary(_ref10) {
         fontSize: 15,
         fontWeight: 700
       }
-    }, dateLabel(d), " ", days[d]), /*#__PURE__*/React.createElement("span", {
+    }, dateLabel(d), " ", dayText(days[d])), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12,
         color: PALETTE.inkSoft
@@ -3947,7 +3971,7 @@ function PrepView(_ref20) {
         fontSize: 13,
         fontWeight: 500
       }
-    }, days[d] || "—"), loc && /*#__PURE__*/React.createElement("div", {
+    }, dayText(days[d]) || "—"), loc && /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 11,
         color: PALETTE.inkSoft,
