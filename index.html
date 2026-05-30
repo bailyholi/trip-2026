@@ -826,11 +826,38 @@ const WMO_ICON = {
   85:"🌨️",86:"🌨️",
   95:"⛈️",96:"⛈️",99:"⛈️",
 };
+
+async function loadState() {
+  if (typeof firebase === "undefined") return null;
+  try {
+    if (!window._fbDb) {
+      const cfg = { apiKey:"AIzaSyB5BinqD52fP2Q_45clCkZNAKPI_jZnaug", authDomain:"europe-tour-7f8d8.firebaseapp.com", databaseURL:"https://europe-tour-7f8d8-default-rtdb.asia-southeast1.firebasedatabase.app", projectId:"europe-tour-7f8d8", storageBucket:"europe-tour-7f8d8.firebasestorage.app", messagingSenderId:"513399245478", appId:"1:513399245478:web:dc8365e30df7c5cf710267" };
+      if (!firebase.apps.length) firebase.initializeApp(cfg);
+      window._fbDb = firebase.database();
+    }
+    const timeout = new Promise(resolve => setTimeout(() => resolve(null), 10000));
+    const fetched = window._fbDb.ref("tripData").get().then(s => s.exists() ? s.val() : null).catch(() => null);
+    return await Promise.race([fetched, timeout]);
+  } catch(e) { return null; }
+}
+async function saveState(s) {
+  if (typeof firebase === "undefined") return;
+  try {
+    if (!window._fbDb) {
+      const cfg = { apiKey:"AIzaSyB5BinqD52fP2Q_45clCkZNAKPI_jZnaug", authDomain:"europe-tour-7f8d8.firebaseapp.com", databaseURL:"https://europe-tour-7f8d8-default-rtdb.asia-southeast1.firebasedatabase.app", projectId:"europe-tour-7f8d8", storageBucket:"europe-tour-7f8d8.firebasestorage.app", messagingSenderId:"513399245478", appId:"1:513399245478:web:dc8365e30df7c5cf710267" };
+      if (!firebase.apps.length) firebase.initializeApp(cfg);
+      window._fbDb = firebase.database();
+    }
+    await window._fbDb.ref("tripData").set(s);
+  } catch(e) { console.error("Save failed:", e); }
+}
 </script><script>"use strict";
 
 function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i["return"]) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
+function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
+function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
 function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
 function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
@@ -846,82 +873,6 @@ function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) 
 function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
-function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
-function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
-function getDb() {
-  if (!window._fbDb) {
-    var cfg = {
-      apiKey: "AIzaSyB5BinqD52fP2Q_45clCkZNAKPI_jZnaug",
-      authDomain: "europe-tour-7f8d8.firebaseapp.com",
-      databaseURL: "https://europe-tour-7f8d8-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "europe-tour-7f8d8",
-      storageBucket: "europe-tour-7f8d8.firebasestorage.app",
-      messagingSenderId: "513399245478",
-      appId: "1:513399245478:web:dc8365e30df7c5cf710267"
-    };
-    if (!firebase.apps.length) firebase.initializeApp(cfg);
-    window._fbDb = firebase.database();
-  }
-  return window._fbDb;
-}
-function loadState() {
-  return _loadState.apply(this, arguments);
-}
-function _loadState() {
-  _loadState = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
-    var timeout, fetched, _t5;
-    return _regenerator().w(function (_context5) {
-      while (1) switch (_context5.p = _context5.n) {
-        case 0:
-          _context5.p = 0;
-          timeout = new Promise(function (resolve) {
-            return setTimeout(function () {
-              return resolve(null);
-            }, 4000);
-          });
-          fetched = getDb().ref("tripData").get().then(function (s) {
-            return s.exists() ? s.val() : null;
-          })["catch"](function () {
-            return null;
-          });
-          _context5.n = 1;
-          return Promise.race([fetched, timeout]);
-        case 1:
-          return _context5.a(2, _context5.v);
-        case 2:
-          _context5.p = 2;
-          _t5 = _context5.v;
-          return _context5.a(2, null);
-      }
-    }, _callee5, null, [[0, 2]]);
-  }));
-  return _loadState.apply(this, arguments);
-}
-function saveState(_x) {
-  return _saveState.apply(this, arguments);
-}
-function _saveState() {
-  _saveState = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6(s) {
-    var _t6;
-    return _regenerator().w(function (_context6) {
-      while (1) switch (_context6.p = _context6.n) {
-        case 0:
-          _context6.p = 0;
-          _context6.n = 1;
-          return getDb().ref("tripData").set(s);
-        case 1:
-          _context6.n = 3;
-          break;
-        case 2:
-          _context6.p = 2;
-          _t6 = _context6.v;
-        case 3:
-          return _context6.a(2);
-      }
-    }, _callee6, null, [[0, 2]]);
-  }));
-  return _saveState.apply(this, arguments);
-}
 var dateLabel = function dateLabel(d) {
   var dt = new Date(d + "T00:00:00");
   return "".concat(String(dt.getMonth() + 1).padStart(2, "0"), "/").concat(String(dt.getDate()).padStart(2, "0"), "(").concat("日一二三四五六"[dt.getDay()], ")");
@@ -956,27 +907,62 @@ function TripPlanner() {
     setTab = _useState10[1];
   var _useState11 = useState(null),
     _useState12 = _slicedToArray(_useState11, 2),
-    editing = _useState12[0],
-    setEditing = _useState12[1];
+    checklistData = _useState12[0],
+    setChecklistData = _useState12[1]; // null = not loaded yet
   var _useState13 = useState(null),
     _useState14 = _slicedToArray(_useState13, 2),
-    dayNoteFor = _useState14[0],
-    setDayNoteFor = _useState14[1];
-  var _useState15 = useState(false),
+    editing = _useState14[0],
+    setEditing = _useState14[1];
+  var _useState15 = useState(null),
     _useState16 = _slicedToArray(_useState15, 2),
-    showAddDays = _useState16[0],
-    setShowAddDays = _useState16[1];
-  var _useState17 = useState(null),
+    dayNoteFor = _useState16[0],
+    setDayNoteFor = _useState16[1];
+  var _useState17 = useState(false),
     _useState18 = _slicedToArray(_useState17, 2),
-    editingDay = _useState18[0],
-    setEditingDay = _useState18[1];
+    showAddDays = _useState18[0],
+    setShowAddDays = _useState18[1];
+  var _useState19 = useState(null),
+    _useState20 = _slicedToArray(_useState19, 2),
+    editingDay = _useState20[0],
+    setEditingDay = _useState20[1];
   useEffect(function () {
     loadState().then(function (s) {
-      if (s) {
-        setItems(s.items || SEED_ITEMS);
+      if (s && s.items) {
+        setItems(s.items);
         setDays(s.days || SEED_DAYS);
         setInfodata(s.infodata || SEED_INFO);
         setSettings(s.settings || DEFAULT_SETTINGS);
+      }
+      // Load checklist - build default main list
+      var defaultCL = {};
+      Object.entries(DEFAULT_CHECKLIST).forEach(function (_ref) {
+        var _ref2 = _slicedToArray(_ref, 2),
+          cat = _ref2[0],
+          items = _ref2[1];
+        defaultCL[cat] = items.map(function (text, i) {
+          return {
+            id: cat + i,
+            text: text,
+            checked: false
+          };
+        });
+      });
+      if (s && s.checklistData) {
+        // New format: { main: {...}, person: {...} }
+        // Old format: { "🎒 隨身": [...] } → migrate to { main: {...} }
+        var firstKey = Object.keys(s.checklistData)[0];
+        if (firstKey && Array.isArray(s.checklistData[firstKey])) {
+          // Old format - migrate
+          setChecklistData({
+            main: s.checklistData
+          });
+        } else {
+          setChecklistData(s.checklistData);
+        }
+      } else {
+        setChecklistData({
+          main: defaultCL
+        });
       }
       setLoaded(true);
     });
@@ -986,7 +972,8 @@ function TripPlanner() {
       items: items,
       days: days,
       infodata: infodata,
-      settings: settings
+      settings: settings,
+      checklistData: checklistData
     }, patch));
   };
 
@@ -1228,10 +1215,17 @@ function TripPlanner() {
     items: items,
     infodata: infodata,
     onOpen: setDayNoteFor
-  }), loaded && tab === "prep" && /*#__PURE__*/React.createElement(PrepView, {
-    days: SEED_DAYS,
+  }), loaded && tab === "prep" && checklistData && /*#__PURE__*/React.createElement(PrepView, {
+    days: days,
     items: items,
-    settings: settings
+    settings: settings,
+    checklistData: checklistData,
+    onChecklistChange: function onChecklistChange(cl) {
+      setChecklistData(cl);
+      persist({
+        checklistData: cl
+      });
+    }
   }), loaded && tab === "set" && /*#__PURE__*/React.createElement(Settings, {
     settings: settings,
     onSave: saveSettings
@@ -1272,16 +1266,16 @@ function TripPlanner() {
 }
 
 // ===== 天氣小工具 =====
-function WeatherWidget(_ref) {
-  var date = _ref.date;
-  var _useState19 = useState(null),
-    _useState20 = _slicedToArray(_useState19, 2),
-    wx = _useState20[0],
-    setWx = _useState20[1];
-  var _useState21 = useState(false),
+function WeatherWidget(_ref3) {
+  var date = _ref3.date;
+  var _useState21 = useState(null),
     _useState22 = _slicedToArray(_useState21, 2),
-    err = _useState22[0],
-    setErr = _useState22[1];
+    wx = _useState22[0],
+    setWx = _useState22[1];
+  var _useState23 = useState(false),
+    _useState24 = _slicedToArray(_useState23, 2),
+    err = _useState24[0],
+    setErr = _useState24[1];
   var loc = WEATHER_LOCATIONS[date];
   useEffect(function () {
     if (!loc) return;
@@ -1383,28 +1377,28 @@ function WeatherWidget(_ref) {
 }
 
 // ===== 每日卡片 =====
-function DayCards(_ref2) {
-  var items = _ref2.items,
-    days = _ref2.days,
-    toTWD = _ref2.toTWD,
-    onEdit = _ref2.onEdit,
-    onAddSlot = _ref2.onAddSlot,
-    onAddDays = _ref2.onAddDays,
-    onEditDay = _ref2.onEditDay;
+function DayCards(_ref4) {
+  var items = _ref4.items,
+    days = _ref4.days,
+    toTWD = _ref4.toTWD,
+    onEdit = _ref4.onEdit,
+    onAddSlot = _ref4.onAddSlot,
+    onAddDays = _ref4.onAddDays,
+    onEditDay = _ref4.onEditDay;
   var allDates = Array.from(new Set([].concat(_toConsumableArray(Object.keys(days)), _toConsumableArray(items.map(function (i) {
     return i.date;
   }))))).sort();
   var today = new Date().toISOString().slice(0, 10);
-  var _useState23 = useState(function () {
+  var _useState25 = useState(function () {
       var init = {};
       allDates.forEach(function (d) {
         init[d] = d < today;
       }); // past = collapsed
       return init;
     }),
-    _useState24 = _slicedToArray(_useState23, 2),
-    collapsed = _useState24[0],
-    setCollapsed = _useState24[1];
+    _useState26 = _slicedToArray(_useState25, 2),
+    collapsed = _useState26[0],
+    setCollapsed = _useState26[1];
   var toggle = function toggle(d) {
     return setCollapsed(function (p) {
       return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, d, !p[d]));
@@ -1451,17 +1445,17 @@ function DayCards(_ref2) {
     });
   }));
 }
-function DayCard(_ref3) {
-  var date = _ref3.date,
-    title = _ref3.title,
-    dayItems = _ref3.dayItems,
-    coveredLodging = _ref3.coveredLodging,
-    toTWD = _ref3.toTWD,
-    onEdit = _ref3.onEdit,
-    onAddSlot = _ref3.onAddSlot,
-    onEditDay = _ref3.onEditDay,
-    collapsed = _ref3.collapsed,
-    onToggle = _ref3.onToggle;
+function DayCard(_ref5) {
+  var date = _ref5.date,
+    title = _ref5.title,
+    dayItems = _ref5.dayItems,
+    coveredLodging = _ref5.coveredLodging,
+    toTWD = _ref5.toTWD,
+    onEdit = _ref5.onEdit,
+    onAddSlot = _ref5.onAddSlot,
+    onEditDay = _ref5.onEditDay,
+    collapsed = _ref5.collapsed,
+    onToggle = _ref5.onToggle;
   var c = COUNTRY[(dayItems[0] || {}).country] || COUNTRY.fr;
   var timed = dayItems.filter(function (i) {
     return i.time;
@@ -1806,10 +1800,10 @@ function DayCard(_ref3) {
 }
 
 // ===== 待辦（自動判斷）=====
-function TodoView(_ref4) {
-  var items = _ref4.items,
-    toTWD = _ref4.toTWD,
-    onEdit = _ref4.onEdit;
+function TodoView(_ref6) {
+  var items = _ref6.items,
+    toTWD = _ref6.toTWD,
+    onEdit = _ref6.onEdit;
   // 自動判斷：交通/門票/住宿 需預訂。有 Drive 連結+票號 => 視為完成
   var isDone = function isDone(it) {
     return it.qr && it.ref;
@@ -1826,9 +1820,9 @@ function TodoView(_ref4) {
   pending.sort(function (a, b) {
     return a.date.localeCompare(b.date);
   });
-  var Card = function Card(_ref5) {
-    var it = _ref5.it,
-      done = _ref5.done;
+  var Card = function Card(_ref7) {
+    var it = _ref7.it,
+      done = _ref7.done;
     var t = TYPE[it.type],
       c = COUNTRY[it.country];
     return /*#__PURE__*/React.createElement("button", {
@@ -1994,10 +1988,10 @@ function computeShares(it, settings, toTWD) {
     delta: delta
   };
 }
-function CostView(_ref6) {
-  var items = _ref6.items,
-    settings = _ref6.settings,
-    toTWD = _ref6.toTWD;
+function CostView(_ref8) {
+  var items = _ref8.items,
+    settings = _ref8.settings,
+    toTWD = _ref8.toTWD;
   var m = useMemo(function () {
     var total = items.reduce(function (s, i) {
       return s + toTWD(i.amount, i.cur);
@@ -2205,12 +2199,12 @@ function CostView(_ref6) {
     sum: catSum(m.perGroup.kid)
   })));
 }
-function GroupBlock(_ref7) {
-  var title = _ref7.title,
-    color = _ref7.color,
-    adults = _ref7.adults,
-    data = _ref7.data,
-    sum = _ref7.sum;
+function GroupBlock(_ref9) {
+  var title = _ref9.title,
+    color = _ref9.color,
+    adults = _ref9.adults,
+    data = _ref9.data,
+    sum = _ref9.sum;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
@@ -2267,7 +2261,7 @@ function GroupBlock(_ref7) {
 }
 
 // ===== AI 呼叫（artifact 內建）=====
-function callAI(_x2) {
+function callAI(_x) {
   return _callAI.apply(this, arguments);
 } // 影片連結 -> 嵌入網址
 function _callAI() {
@@ -2278,7 +2272,7 @@ function _callAI() {
         case 0:
           _context7.p = 0;
           _context7.n = 1;
-          return fetch("https://api.anthropic.com/v1/messages", {
+          return fetch("https://trip-ai-proxy.yesnonoman.workers.dev", {
             method: "POST",
             headers: {
               "Content-Type": "application/json"
@@ -2321,22 +2315,22 @@ function ytEmbed(url) {
 // INFO_CAT removed - simplified to name+URL only
 
 // ===== 資訊庫（天 → 地點卡，自動連動每日行程項目）=====
-function InfoLibrary(_ref8) {
-  var days = _ref8.days,
-    items = _ref8.items,
-    infodata = _ref8.infodata,
-    onOpen = _ref8.onOpen;
+function InfoLibrary(_ref0) {
+  var days = _ref0.days,
+    items = _ref0.items,
+    infodata = _ref0.infodata,
+    onOpen = _ref0.onOpen;
   var dates = Array.from(new Set([].concat(_toConsumableArray(Object.keys(days)), _toConsumableArray(items.map(function (i) {
     return i.date;
   }))))).sort();
-  var _useState25 = useState(function () {
+  var _useState27 = useState(function () {
       return dates.reduce(function (a, d) {
         return _objectSpread(_objectSpread({}, a), {}, _defineProperty({}, d, true));
       }, {});
     }),
-    _useState26 = _slicedToArray(_useState25, 2),
-    openDays = _useState26[0],
-    setOpenDays = _useState26[1];
+    _useState28 = _slicedToArray(_useState27, 2),
+    openDays = _useState28[0],
+    setOpenDays = _useState28[1];
   var toggle = function toggle(d) {
     return setOpenDays(function (p) {
       return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, d, !p[d]));
@@ -2447,32 +2441,32 @@ function InfoLibrary(_ref8) {
 }
 
 // ===== 路線 AI 摘要 =====
-function RouteAISummary(_ref9) {
-  var days = _ref9.days;
-  var _useState27 = useState(""),
-    _useState28 = _slicedToArray(_useState27, 2),
-    summary = _useState28[0],
-    setSummary = _useState28[1];
-  var _useState29 = useState(false),
+function RouteAISummary(_ref1) {
+  var days = _ref1.days;
+  var _useState29 = useState(""),
     _useState30 = _slicedToArray(_useState29, 2),
-    busy = _useState30[0],
-    setBusy = _useState30[1];
+    summary = _useState30[0],
+    setSummary = _useState30[1];
+  var _useState31 = useState(false),
+    _useState32 = _slicedToArray(_useState31, 2),
+    busy = _useState32[0],
+    setBusy = _useState32[1];
   var gen = /*#__PURE__*/function () {
-    var _ref0 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
+    var _ref10 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
       var dayList, res, data, txt, _t;
       return _regenerator().w(function (_context) {
         while (1) switch (_context.p = _context.n) {
           case 0:
             setBusy(true);
-            dayList = Object.entries(days).sort().map(function (_ref1) {
-              var _ref10 = _slicedToArray(_ref1, 2),
-                d = _ref10[0],
-                t = _ref10[1];
+            dayList = Object.entries(days).sort().map(function (_ref11) {
+              var _ref12 = _slicedToArray(_ref11, 2),
+                d = _ref12[0],
+                t = _ref12[1];
               return "".concat(d.slice(5).replace("-", "/"), " ").concat(t);
             }).join("\n");
             _context.p = 1;
             _context.n = 2;
-            return fetch("https://api.anthropic.com/v1/messages", {
+            return fetch("https://trip-ai-proxy.yesnonoman.workers.dev", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json"
@@ -2512,7 +2506,7 @@ function RouteAISummary(_ref9) {
       }, _callee, null, [[1, 4]]);
     }));
     return function gen() {
-      return _ref0.apply(this, arguments);
+      return _ref10.apply(this, arguments);
     };
   }();
   if (!summary) return /*#__PURE__*/React.createElement("div", {
@@ -2567,89 +2561,839 @@ function RouteAISummary(_ref9) {
   }, "\u91CD\u65B0\u751F\u6210"));
 }
 
-// ===== 行前準備 =====
-function PrepView(_ref11) {
-  var days = _ref11.days,
-    items = _ref11.items,
-    settings = _ref11.settings;
-  var _useState31 = useState(function () {
-      var saved = {};
-      Object.entries(DEFAULT_CHECKLIST).forEach(function (_ref12) {
-        var _ref13 = _slicedToArray(_ref12, 2),
-          cat = _ref13[0],
-          items = _ref13[1];
-        saved[cat] = items.map(function (text, i) {
-          return {
-            id: cat + i,
-            text: text,
-            checked: false
-          };
-        });
-      });
-      return saved;
-    }),
-    _useState32 = _slicedToArray(_useState31, 2),
-    checklistData = _useState32[0],
-    setChecklistData = _useState32[1];
-  var _useState33 = useState({
-      "🎒 隨身": true
-    }),
+// ===== 國家資訊區塊（含景點連動＋AI對話）=====
+var COUNTRY_CONFIG = [{
+  k: "fr",
+  flag: "🇫🇷",
+  name: "法國",
+  dates: "6/3–6/13",
+  color: "#3a5a9b",
+  stats: [{
+    l: "首都",
+    v: "巴黎"
+  }, {
+    l: "面積",
+    v: "55.1萬 km²"
+  }, {
+    l: "人口",
+    v: "約6800萬"
+  }, {
+    l: "幣值",
+    v: "歐元 EUR €"
+  }, {
+    l: "插座",
+    v: "Type E (220V)"
+  }, {
+    l: "時區",
+    v: "UTC+2 (夏令)"
+  }],
+  emergency: {
+    police: "17",
+    ambulance: "15",
+    fire: "18"
+  }
+}, {
+  k: "ch",
+  flag: "🇨🇭",
+  name: "瑞士",
+  dates: "6/13–6/24",
+  color: "#b5483d",
+  stats: [{
+    l: "首都",
+    v: "伯恩"
+  }, {
+    l: "面積",
+    v: "4.1萬 km²"
+  }, {
+    l: "人口",
+    v: "約880萬"
+  }, {
+    l: "幣值",
+    v: "瑞士法郎 CHF"
+  }, {
+    l: "插座",
+    v: "Type J (230V)"
+  }, {
+    l: "時區",
+    v: "UTC+2 (夏令)"
+  }],
+  emergency: {
+    police: "117",
+    ambulance: "144",
+    fire: "118"
+  }
+}, {
+  k: "it",
+  flag: "🇮🇹",
+  name: "義大利",
+  dates: "6/24–7/10",
+  color: "#4a7c59",
+  stats: [{
+    l: "首都",
+    v: "羅馬"
+  }, {
+    l: "面積",
+    v: "30.1萬 km²"
+  }, {
+    l: "人口",
+    v: "約5900萬"
+  }, {
+    l: "幣值",
+    v: "歐元 EUR €"
+  }, {
+    l: "插座",
+    v: "Type F/L (230V)"
+  }, {
+    l: "時區",
+    v: "UTC+2 (夏令)"
+  }],
+  emergency: {
+    police: "113",
+    ambulance: "118",
+    fire: "115"
+  }
+}];
+function AttractionChips(_ref13) {
+  var items = _ref13.items,
+    color = _ref13.color;
+  var _useState33 = useState(null),
     _useState34 = _slicedToArray(_useState33, 2),
-    openCats = _useState34[0],
-    setOpenCats = _useState34[1];
+    selected = _useState34[0],
+    setSelected = _useState34[1];
   var _useState35 = useState({}),
     _useState36 = _slicedToArray(_useState35, 2),
-    newItems = _useState36[0],
-    setNewItems = _useState36[1];
-  var _useState37 = useState("checklist"),
+    infos = _useState36[0],
+    setInfos = _useState36[1];
+  var _useState37 = useState({}),
     _useState38 = _slicedToArray(_useState37, 2),
-    activeSection = _useState38[0],
-    setActiveSection = _useState38[1];
-  var _useState39 = useState(""),
+    busy = _useState38[0],
+    setBusy = _useState38[1];
+  var select = /*#__PURE__*/function () {
+    var _ref14 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(it) {
+      var res, data, txt, _t2;
+      return _regenerator().w(function (_context2) {
+        while (1) switch (_context2.p = _context2.n) {
+          case 0:
+            if (!(selected === it.id)) {
+              _context2.n = 1;
+              break;
+            }
+            setSelected(null);
+            return _context2.a(2);
+          case 1:
+            setSelected(it.id);
+            if (!infos[it.id]) {
+              _context2.n = 2;
+              break;
+            }
+            return _context2.a(2);
+          case 2:
+            setBusy(function (p) {
+              return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, it.id, true));
+            });
+            _context2.p = 3;
+            _context2.n = 4;
+            return fetch("https://trip-ai-proxy.yesnonoman.workers.dev", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 250,
+                messages: [{
+                  role: "user",
+                  content: "\u8ACB\u7528\u7E41\u9AD4\u4E2D\u6587\uFF0C\u91DD\u5C0D\u300C".concat(it.title, "\u300D\u5BEB\u666F\u9EDE\u7C21\u4ECB\uFF0880\u5B57\u4EE5\u5167\uFF09\u3002\u5305\u542B\uFF1A\u4EAE\u9EDE\u3001\u5E364\u6B72/2\u6B72\u5C0F\u5B69\u9069\u5408\u55CE\u3001\u6700\u4F73\u6642\u6BB5\u3002\u8A9E\u6C23\u8F15\u9B06\u3002")
+                }]
+              })
+            });
+          case 4:
+            res = _context2.v;
+            _context2.n = 5;
+            return res.json();
+          case 5:
+            data = _context2.v;
+            txt = (data.content || []).filter(function (b) {
+              return b.type === "text";
+            }).map(function (b) {
+              return b.text;
+            }).join("").trim();
+            setInfos(function (p) {
+              return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, it.id, txt));
+            });
+            _context2.n = 7;
+            break;
+          case 6:
+            _context2.p = 6;
+            _t2 = _context2.v;
+            setInfos(function (p) {
+              return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, it.id, "（載入失敗，請稍後再試）"));
+            });
+          case 7:
+            setBusy(function (p) {
+              return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, it.id, false));
+            });
+          case 8:
+            return _context2.a(2);
+        }
+      }, _callee2, null, [[3, 6]]);
+    }));
+    return function select(_x2) {
+      return _ref14.apply(this, arguments);
+    };
+  }();
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 8,
+      marginBottom: selected ? 10 : 0
+    }
+  }, items.map(function (it) {
+    return /*#__PURE__*/React.createElement("button", {
+      key: it.id,
+      className: "tp-btn",
+      onClick: function onClick() {
+        return select(it);
+      },
+      style: {
+        padding: "6px 14px",
+        borderRadius: 20,
+        fontSize: 13,
+        fontWeight: 600,
+        background: selected === it.id ? color : "#fff",
+        color: selected === it.id ? "#fff" : "#2c2620",
+        border: "1.5px solid ".concat(selected === it.id ? color : "#e0d7c8"),
+        transition: "all .15s"
+      }
+    }, "\uD83C\uDFAB ", it.title.length > 12 ? it.title.slice(0, 12) + "…" : it.title);
+  })), selected && function (_it$date, _STATUS$it$status) {
+    var it = items.find(function (x) {
+      return x.id === selected;
+    });
+    if (!it) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: "#f8f5f0",
+        borderRadius: 12,
+        padding: "12px 14px",
+        border: "1px solid ".concat(color, "30")
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700
+      }
+    }, it.title), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#9a8a7a",
+        marginTop: 2
+      }
+    }, (_it$date = it.date) === null || _it$date === void 0 ? void 0 : _it$date.slice(5).replace("-", "/"), " ", it.time ? "\xB7 ".concat(it.time) : "", " \xB7 ", (_STATUS$it$status = STATUS[it.status]) === null || _STATUS$it$status === void 0 ? void 0 : _STATUS$it$status.label, it.ref ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        marginLeft: 6,
+        color: "#b08945"
+      }
+    }, "#", it.ref.slice(0, 15)) : "")), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setSelected(null);
+      },
+      style: {
+        fontSize: 13,
+        color: "#c9bda8",
+        background: "none",
+        border: "none",
+        cursor: "pointer"
+      }
+    }, "\u2715")), it.note && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "#6b6358",
+        marginBottom: 8,
+        padding: "6px 8px",
+        background: "#fff",
+        borderRadius: 8
+      }
+    }, "\uD83D\uDCDD ", it.note), busy[it.id] ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "#c9bda8"
+      }
+    }, "AI \u751F\u6210\u4E2D\u2026") : infos[it.id] ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        lineHeight: 1.8,
+        color: "#2c2620"
+      }
+    }, "\u2728 ", infos[it.id]) : /*#__PURE__*/React.createElement("button", {
+      className: "tp-btn",
+      onClick: function onClick() {
+        return select(it);
+      },
+      style: {
+        fontSize: 12,
+        padding: "5px 14px",
+        borderRadius: 16,
+        background: color,
+        color: "#fff"
+      }
+    }, "\uD83E\uDD16 AI \u666F\u9EDE\u7C21\u4ECB"));
+  }());
+}
+function CountryChat(_ref15) {
+  var countryName = _ref15.countryName,
+    color = _ref15.color;
+  var _useState39 = useState([]),
     _useState40 = _slicedToArray(_useState39, 2),
-    aiCloth = _useState40[0],
-    setAiCloth = _useState40[1];
-  var _useState41 = useState({}),
+    msgs = _useState40[0],
+    setMsgs = _useState40[1];
+  var _useState41 = useState(""),
     _useState42 = _slicedToArray(_useState41, 2),
-    aiCountry = _useState42[0],
-    setAiCountry = _useState42[1];
+    input = _useState42[0],
+    setInput = _useState42[1];
   var _useState43 = useState(false),
     _useState44 = _slicedToArray(_useState43, 2),
-    busyCloth = _useState44[0],
-    setBusyCloth = _useState44[1];
-  var _useState45 = useState({}),
-    _useState46 = _slicedToArray(_useState45, 2),
-    busyCountry = _useState46[0],
-    setBusyCountry = _useState46[1];
-  var toggleCheck = function toggleCheck(cat, id) {
-    setChecklistData(function (p) {
-      return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, cat, p[cat].map(function (it) {
-        return it.id === id ? _objectSpread(_objectSpread({}, it), {}, {
-          checked: !it.checked
-        }) : it;
-      })));
+    busy = _useState44[0],
+    setBusy = _useState44[1];
+  var send = /*#__PURE__*/function () {
+    var _ref16 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
+      var q, newMsgs, res, data, txt, _t3;
+      return _regenerator().w(function (_context3) {
+        while (1) switch (_context3.p = _context3.n) {
+          case 0:
+            q = input.trim();
+            if (!(!q || busy)) {
+              _context3.n = 1;
+              break;
+            }
+            return _context3.a(2);
+          case 1:
+            setInput("");
+            newMsgs = [].concat(_toConsumableArray(msgs), [{
+              role: "user",
+              content: q
+            }]);
+            setMsgs(newMsgs);
+            setBusy(true);
+            _context3.p = 2;
+            _context3.n = 3;
+            return fetch("https://trip-ai-proxy.yesnonoman.workers.dev", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 400,
+                system: "\u4F60\u662F\u719F\u6089".concat(countryName, "\u7684\u65C5\u904A\u9867\u554F\uFF0C\u56DE\u7B54\u53F0\u7063\u65C5\u5BA2\uFF08\u5E364\u6B72\u548C2\u6B72\u5C0F\u5B69\uFF09\u7684\u554F\u984C\u3002\u7528\u7E41\u9AD4\u4E2D\u6587\uFF0C\u7C21\u6F54\u76F4\u63A5\uFF0C3-5\u53E5\u3002"),
+                messages: newMsgs
+              })
+            });
+          case 3:
+            res = _context3.v;
+            _context3.n = 4;
+            return res.json();
+          case 4:
+            data = _context3.v;
+            txt = (data.content || []).filter(function (b) {
+              return b.type === "text";
+            }).map(function (b) {
+              return b.text;
+            }).join("").trim();
+            setMsgs([].concat(_toConsumableArray(newMsgs), [{
+              role: "assistant",
+              content: txt
+            }]));
+            _context3.n = 6;
+            break;
+          case 5:
+            _context3.p = 5;
+            _t3 = _context3.v;
+            setMsgs([].concat(_toConsumableArray(newMsgs), [{
+              role: "assistant",
+              content: "（回答失敗，請稍後再試）"
+            }]));
+          case 6:
+            setBusy(false);
+          case 7:
+            return _context3.a(2);
+        }
+      }, _callee3, null, [[2, 5]]);
+    }));
+    return function send() {
+      return _ref16.apply(this, arguments);
+    };
+  }();
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: color,
+      marginBottom: 8
+    }
+  }, "\uD83D\uDCAC \u554F\u7576\u5730\u6C11\u60C5"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxHeight: 200,
+      overflowY: "auto",
+      marginBottom: 8
+    }
+  }, msgs.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#c9bda8",
+      padding: "8px 0"
+    }
+  }, "\u554F\u4EFB\u4F55\u554F\u984C\uFF01\u4F8B\u5982\uFF1A\u300C\u9910\u5EF3\u8981\u7D66\u5C0F\u8CBB\u55CE\uFF1F\u300D\u300C\u5E36\u5B30\u5152\u8ECA\u65B9\u4FBF\u55CE\uFF1F\u300D\u300C\u600E\u9EBC\u627E\u5EC1\u6240\uFF1F\u300D"), msgs.map(function (m, i) {
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        marginBottom: 8,
+        display: "flex",
+        justifyContent: m.role === "user" ? "flex-end" : "flex-start"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        maxWidth: "85%",
+        padding: "8px 12px",
+        borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+        background: m.role === "user" ? color : "#f3f3ee",
+        color: m.role === "user" ? "#fff" : "#2c2620",
+        fontSize: 13,
+        lineHeight: 1.6
+      }
+    }, m.content));
+  }), busy && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#c9bda8",
+      padding: "4px 8px"
+    }
+  }, "\u601D\u8003\u4E2D\u2026")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: input,
+    onChange: function onChange(e) {
+      return setInput(e.target.value);
+    },
+    onKeyDown: function onKeyDown(e) {
+      return e.key === "Enter" && send();
+    },
+    placeholder: "\u554F\u4EFB\u4F55\u95DC\u65BC\u7576\u5730\u7684\u4E8B\u2026",
+    style: {
+      flex: 1,
+      padding: "8px 12px",
+      borderRadius: 20,
+      border: "1px solid #e0d7c8",
+      fontSize: 13,
+      background: "#fff"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "tp-btn",
+    onClick: send,
+    disabled: busy || !input.trim(),
+    style: {
+      padding: "8px 16px",
+      borderRadius: 20,
+      background: input.trim() ? color : "#e0d7c8",
+      color: "#fff",
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, "\u9001\u51FA")));
+}
+function CountrySection(_ref17) {
+  var items = _ref17.items,
+    aiCountry = _ref17.aiCountry,
+    busyCountry = _ref17.busyCountry,
+    genCountry = _ref17.genCountry;
+  return /*#__PURE__*/React.createElement("div", null, COUNTRY_CONFIG.map(function (c) {
+    // Get tickets/attractions for this country
+    var attractions = items.filter(function (it) {
+      return it.country === c.k && (it.type === "ticket" || it.type === "transport") && it.title;
     });
+    return /*#__PURE__*/React.createElement("div", {
+      key: c.k,
+      style: {
+        background: "#fbf8f1",
+        borderRadius: 14,
+        marginBottom: 16,
+        border: "1px solid #e0d7c8",
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "14px 16px",
+        background: "".concat(c.color, "18"),
+        borderBottom: "1px solid ".concat(c.color, "30")
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "tp-head",
+      style: {
+        fontSize: 20,
+        fontWeight: 800
+      }
+    }, c.flag, " ", c.name), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        background: "".concat(c.color, "25"),
+        color: c.color,
+        padding: "3px 10px",
+        borderRadius: 20,
+        fontWeight: 600
+      }
+    }, c.dates))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr 1fr",
+        gap: 1,
+        background: "#e0d7c8"
+      }
+    }, c.stats.map(function (s, i) {
+      return /*#__PURE__*/React.createElement("div", {
+        key: i,
+        style: {
+          background: "#fbf8f1",
+          padding: "9px 12px"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 10,
+          color: "#6b6358",
+          marginBottom: 2
+        }
+      }, s.l), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 13,
+          fontWeight: 700
+        }
+      }, s.v));
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "8px 16px",
+        background: "#fff8f2",
+        borderTop: "1px solid #e0d7c8",
+        display: "flex",
+        gap: 14,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 700,
+        color: "#c04040"
+      }
+    }, "\uD83D\uDEA8"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11
+      }
+    }, "\u8B66\u5BDF ", /*#__PURE__*/React.createElement("b", null, c.emergency.police)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11
+      }
+    }, "\u6551\u8B77 ", /*#__PURE__*/React.createElement("b", null, c.emergency.ambulance)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11
+      }
+    }, "\u6D88\u9632 ", /*#__PURE__*/React.createElement("b", null, c.emergency.fire))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "12px 16px"
+      }
+    }, attractions.filter(function (it) {
+      return it.type === "ticket";
+    }).length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 14
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: c.color,
+        marginBottom: 8
+      }
+    }, "\uD83C\uDFAB \u884C\u7A0B\u666F\u9EDE"), /*#__PURE__*/React.createElement(AttractionChips, {
+      items: attractions.filter(function (it) {
+        return it.type === "ticket";
+      }),
+      infodata: {},
+      color: c.color
+    })), /*#__PURE__*/React.createElement("div", null, aiCountry[c.k] ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: c.color,
+        marginBottom: 6
+      }
+    }, "\uD83E\uDDED \u751F\u6D3B\u7FD2\u6163\u30FB\u98A8\u4FD7\u7981\u5FCC"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        lineHeight: 1.9,
+        whiteSpace: "pre-wrap"
+      }
+    }, aiCountry[c.k]), /*#__PURE__*/React.createElement("button", {
+      className: "tp-btn",
+      onClick: function onClick() {
+        return genCountry(c.k, true);
+      },
+      style: {
+        marginTop: 8,
+        fontSize: 11,
+        color: "#9a8a7a",
+        background: "none",
+        border: "none",
+        cursor: "pointer"
+      }
+    }, "\u91CD\u65B0\u751F\u6210")) : /*#__PURE__*/React.createElement("button", {
+      className: "tp-btn",
+      onClick: function onClick() {
+        return genCountry(c.k);
+      },
+      disabled: busyCountry[c.k],
+      style: {
+        padding: "8px 18px",
+        borderRadius: 20,
+        background: c.color,
+        color: "#fff",
+        fontSize: 13,
+        fontWeight: 600,
+        marginBottom: 8
+      }
+    }, busyCountry[c.k] ? "生成中…" : "🤖 生活習慣・風俗禁忌")), /*#__PURE__*/React.createElement(CountryChat, {
+      countryName: c.name,
+      color: c.color
+    })));
+  }));
+}
+function AddPersonBtn(_ref18) {
+  var onAdd = _ref18.onAdd;
+  var _useState45 = useState(false),
+    _useState46 = _slicedToArray(_useState45, 2),
+    show = _useState46[0],
+    setShow = _useState46[1];
+  var _useState47 = useState(""),
+    _useState48 = _slicedToArray(_useState47, 2),
+    name = _useState48[0],
+    setName = _useState48[1];
+  if (!show) return /*#__PURE__*/React.createElement("button", {
+    className: "tp-btn",
+    onClick: function onClick() {
+      return setShow(true);
+    },
+    style: {
+      padding: "6px 12px",
+      borderRadius: 20,
+      fontSize: 12,
+      background: "transparent",
+      border: "1.5px dashed ".concat(PALETTE.gold),
+      color: PALETTE.gold
+    }
+  }, "\uFF0B \u65B0\u589E\u6210\u54E1\u6E05\u55AE");
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    autoFocus: true,
+    value: name,
+    onChange: function onChange(e) {
+      return setName(e.target.value);
+    },
+    onKeyDown: function onKeyDown(e) {
+      if (e.key === "Enter" && name.trim()) {
+        onAdd(name.trim());
+        setName("");
+        setShow(false);
+      }
+    },
+    placeholder: "\u6210\u54E1\u540D\u7A31\uFF08\u4F8B\uFF1A\u5B9C\u8ED2\uFF09",
+    style: {
+      padding: "5px 10px",
+      borderRadius: 16,
+      border: "1px solid ".concat(PALETTE.gold),
+      fontSize: 12,
+      width: 120
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "tp-btn",
+    onClick: function onClick() {
+      if (name.trim()) {
+        onAdd(name.trim());
+        setName("");
+        setShow(false);
+      }
+    },
+    style: {
+      padding: "5px 10px",
+      borderRadius: 16,
+      background: PALETTE.gold,
+      color: "#fff",
+      fontSize: 12
+    }
+  }, "\u5EFA\u7ACB"), /*#__PURE__*/React.createElement("button", {
+    className: "tp-btn",
+    onClick: function onClick() {
+      return setShow(false);
+    },
+    style: {
+      fontSize: 12,
+      color: PALETTE.inkSoft,
+      background: "none",
+      border: "none"
+    }
+  }, "\u53D6\u6D88"));
+}
+
+// ===== 行前準備 =====
+function PrepView(_ref19) {
+  var days = _ref19.days,
+    items = _ref19.items,
+    settings = _ref19.settings,
+    checklistData = _ref19.checklistData,
+    onChecklistChange = _ref19.onChecklistChange;
+  var updateChecklist = function updateChecklist(newCL) {
+    onChecklistChange(newCL);
+  };
+  var _useState49 = useState({}),
+    _useState50 = _slicedToArray(_useState49, 2),
+    openCats = _useState50[0],
+    setOpenCats = _useState50[1];
+  var _useState51 = useState({}),
+    _useState52 = _slicedToArray(_useState51, 2),
+    newItems = _useState52[0],
+    setNewItems = _useState52[1];
+  var _useState53 = useState("checklist"),
+    _useState54 = _slicedToArray(_useState53, 2),
+    activeSection = _useState54[0],
+    setActiveSection = _useState54[1];
+  var _useState55 = useState("main"),
+    _useState56 = _slicedToArray(_useState55, 2),
+    activePerson = _useState56[0],
+    setActivePerson = _useState56[1];
+  var _useState57 = useState(""),
+    _useState58 = _slicedToArray(_useState57, 2),
+    newCatName = _useState58[0],
+    setNewCatName = _useState58[1];
+  var _useState59 = useState(null),
+    _useState60 = _slicedToArray(_useState59, 2),
+    editingCat = _useState60[0],
+    setEditingCat = _useState60[1];
+  var _useState61 = useState(""),
+    _useState62 = _slicedToArray(_useState61, 2),
+    aiCloth = _useState62[0],
+    setAiCloth = _useState62[1];
+  var _useState63 = useState({}),
+    _useState64 = _slicedToArray(_useState63, 2),
+    aiCountry = _useState64[0],
+    setAiCountry = _useState64[1];
+  var _useState65 = useState(false),
+    _useState66 = _slicedToArray(_useState65, 2),
+    busyCloth = _useState66[0],
+    setBusyCloth = _useState66[1];
+  var _useState67 = useState({}),
+    _useState68 = _slicedToArray(_useState67, 2),
+    busyCountry = _useState68[0],
+    setBusyCountry = _useState68[1];
+  var getPersonCL = function getPersonCL() {
+    return checklistData && checklistData[activePerson] || {};
+  };
+  var setPersonCL = function setPersonCL(newPCL) {
+    var newCL = _objectSpread(_objectSpread({}, checklistData), {}, _defineProperty({}, activePerson, newPCL));
+    updateChecklist(newCL);
+  };
+  var toggleCheck = function toggleCheck(cat, id) {
+    var pcl = getPersonCL();
+    setPersonCL(_objectSpread(_objectSpread({}, pcl), {}, _defineProperty({}, cat, (pcl[cat] || []).map(function (it) {
+      return it.id === id ? _objectSpread(_objectSpread({}, it), {}, {
+        checked: !it.checked
+      }) : it;
+    }))));
   };
   var addItem = function addItem(cat) {
     var text = (newItems[cat] || "").trim();
     if (!text) return;
-    setChecklistData(function (p) {
-      return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, cat, [].concat(_toConsumableArray(p[cat]), [{
-        id: cat + Date.now(),
-        text: text,
-        checked: false
-      }])));
-    });
+    var pcl = getPersonCL();
+    setPersonCL(_objectSpread(_objectSpread({}, pcl), {}, _defineProperty({}, cat, [].concat(_toConsumableArray(pcl[cat] || []), [{
+      id: cat + Date.now(),
+      text: text,
+      checked: false
+    }]))));
     setNewItems(function (p) {
       return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, cat, ""));
     });
   };
-  var delItem = function delItem(cat, id) {
-    return setChecklistData(function (p) {
-      return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, cat, p[cat].filter(function (it) {
-        return it.id !== id;
-      })));
+  var addCategory = function addCategory() {
+    var name = newCatName.trim();
+    if (!name) return;
+    var pcl = getPersonCL();
+    if (pcl[name]) return;
+    setPersonCL(_objectSpread(_objectSpread({}, pcl), {}, _defineProperty({}, name, [])));
+    setNewCatName("");
+    setOpenCats(function (p) {
+      return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, name, true));
     });
+  };
+  var renameCategory = function renameCategory(oldKey, newKey) {
+    if (!newKey.trim() || newKey === oldKey) {
+      setEditingCat(null);
+      return;
+    }
+    var pcl = getPersonCL();
+    var reordered = {};
+    Object.entries(pcl).forEach(function (_ref20) {
+      var _ref21 = _slicedToArray(_ref20, 2),
+        k = _ref21[0],
+        v = _ref21[1];
+      reordered[k === oldKey ? newKey : k] = v;
+    });
+    setPersonCL(reordered);
+    setEditingCat(null);
+  };
+  var addPerson = function addPerson(name) {
+    if (!name.trim() || checklistData[name]) return;
+    // Copy structure from main but reset checked
+    var mainPCL = checklistData["main"] || {};
+    var newPCL = {};
+    Object.entries(mainPCL).forEach(function (_ref22) {
+      var _ref23 = _slicedToArray(_ref22, 2),
+        cat = _ref23[0],
+        items = _ref23[1];
+      newPCL[cat] = items.map(function (it) {
+        return _objectSpread(_objectSpread({}, it), {}, {
+          checked: false
+        });
+      });
+    });
+    updateChecklist(_objectSpread(_objectSpread({}, checklistData), {}, _defineProperty({}, name, newPCL)));
+    setActivePerson(name);
+  };
+  var delItem = function delItem(cat, id) {
+    var pcl = getPersonCL();
+    setPersonCL(_objectSpread(_objectSpread({}, pcl), {}, _defineProperty({}, cat, (pcl[cat] || []).filter(function (it) {
+      return it.id !== id;
+    }))));
   };
   var toggleCat = function toggleCat(cat) {
     return setOpenCats(function (p) {
@@ -2666,15 +3410,15 @@ function PrepView(_ref11) {
     flex: 1
   };
   var genClothing = /*#__PURE__*/function () {
-    var _ref14 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-      var res, data, txt, _t2;
-      return _regenerator().w(function (_context2) {
-        while (1) switch (_context2.p = _context2.n) {
+    var _ref24 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
+      var res, data, txt, _t4;
+      return _regenerator().w(function (_context4) {
+        while (1) switch (_context4.p = _context4.n) {
           case 0:
             setBusyCloth(true);
-            _context2.p = 1;
-            _context2.n = 2;
-            return fetch("https://api.anthropic.com/v1/messages", {
+            _context4.p = 1;
+            _context4.n = 2;
+            return fetch("https://trip-ai-proxy.yesnonoman.workers.dev", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json"
@@ -2693,39 +3437,39 @@ function PrepView(_ref11) {
               })
             });
           case 2:
-            res = _context2.v;
-            _context2.n = 3;
+            res = _context4.v;
+            _context4.n = 3;
             return res.json();
           case 3:
-            data = _context2.v;
+            data = _context4.v;
             txt = (data.content || []).filter(function (b) {
               return b.type === "text";
             }).map(function (b) {
               return b.text;
             }).join("\n").trim();
             setAiCloth(txt);
-            _context2.n = 5;
+            _context4.n = 5;
             break;
           case 4:
-            _context2.p = 4;
-            _t2 = _context2.v;
+            _context4.p = 4;
+            _t4 = _context4.v;
             setAiCloth("（產生失敗，請稍後再試）");
           case 5:
             setBusyCloth(false);
           case 6:
-            return _context2.a(2);
+            return _context4.a(2);
         }
-      }, _callee2, null, [[1, 4]]);
+      }, _callee4, null, [[1, 4]]);
     }));
     return function genClothing() {
-      return _ref14.apply(this, arguments);
+      return _ref24.apply(this, arguments);
     };
   }();
   var genCountry = /*#__PURE__*/function () {
-    var _ref15 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(country) {
-      var names, res, data, txt, _t3;
-      return _regenerator().w(function (_context3) {
-        while (1) switch (_context3.p = _context3.n) {
+    var _ref25 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(country) {
+      var names, res, data, txt, _t5;
+      return _regenerator().w(function (_context5) {
+        while (1) switch (_context5.p = _context5.n) {
           case 0:
             setBusyCountry(function (p) {
               return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, country, true));
@@ -2735,9 +3479,9 @@ function PrepView(_ref11) {
               ch: "瑞士（琉森、少女峰、策馬特）",
               it: "義大利（那不勒斯、羅馬、佛羅倫斯、威尼斯）"
             };
-            _context3.p = 1;
-            _context3.n = 2;
-            return fetch("https://api.anthropic.com/v1/messages", {
+            _context5.p = 1;
+            _context5.n = 2;
+            return fetch("https://trip-ai-proxy.yesnonoman.workers.dev", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json"
@@ -2752,11 +3496,11 @@ function PrepView(_ref11) {
               })
             });
           case 2:
-            res = _context3.v;
-            _context3.n = 3;
+            res = _context5.v;
+            _context5.n = 3;
             return res.json();
           case 3:
-            data = _context3.v;
+            data = _context5.v;
             txt = (data.content || []).filter(function (b) {
               return b.type === "text";
             }).map(function (b) {
@@ -2765,11 +3509,11 @@ function PrepView(_ref11) {
             setAiCountry(function (p) {
               return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, country, txt));
             });
-            _context3.n = 5;
+            _context5.n = 5;
             break;
           case 4:
-            _context3.p = 4;
-            _t3 = _context3.v;
+            _context5.p = 4;
+            _t5 = _context5.v;
             setAiCountry(function (p) {
               return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, country, "（產生失敗，請稍後再試）"));
             });
@@ -2778,12 +3522,12 @@ function PrepView(_ref11) {
               return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, country, false));
             });
           case 6:
-            return _context3.a(2);
+            return _context5.a(2);
         }
-      }, _callee3, null, [[1, 4]]);
+      }, _callee5, null, [[1, 4]]);
     }));
     return function genCountry(_x3) {
-      return _ref15.apply(this, arguments);
+      return _ref25.apply(this, arguments);
     };
   }();
   var SECTIONS = [{
@@ -2829,162 +3573,301 @@ function PrepView(_ref11) {
         border: "1px solid ".concat(activeSection === s.k ? PALETTE.ink : PALETTE.line)
       }
     }, s.label);
-  })), activeSection === "checklist" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: PALETTE.paper,
-      borderRadius: 12,
-      padding: "12px 16px",
-      marginBottom: 14,
-      border: "1px solid ".concat(PALETTE.line)
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "tp-head",
-    style: {
-      fontSize: 16,
-      fontWeight: 700
-    }
-  }, "\u6253\u5305\u6E05\u55AE"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: doneCount === totalCount ? PALETTE.green : PALETTE.amber,
-      fontWeight: 600
-    }
-  }, doneCount, " / ", totalCount, " \u2713")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 6,
-      background: PALETTE.line,
-      borderRadius: 6,
-      marginTop: 8,
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: "".concat(totalCount ? doneCount / totalCount * 100 : 0, "%"),
-      height: "100%",
-      background: PALETTE.green
-    }
-  }))), Object.entries(checklistData).map(function (_ref16) {
-    var _ref17 = _slicedToArray(_ref16, 2),
-      cat = _ref17[0],
-      catItems = _ref17[1];
-    return /*#__PURE__*/React.createElement("div", {
-      key: cat,
+  })), activeSection === "checklist" && /*#__PURE__*/React.createElement("div", null, function () {
+    var persons = Object.keys(checklistData || {});
+    var personNames = persons.filter(function (p) {
+      return p !== "main";
+    });
+    var pcl = getPersonCL();
+    var cats = Object.keys(pcl);
+    var doneCount = cats.flatMap(function (c) {
+      return pcl[c] || [];
+    }).filter(function (i) {
+      return i.checked;
+    }).length;
+    var totalCount = cats.flatMap(function (c) {
+      return pcl[c] || [];
+    }).length;
+    return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        marginBottom: 12,
+        flexWrap: "wrap",
+        alignItems: "center"
+      }
+    }, ["main"].concat(_toConsumableArray(personNames)).map(function (p) {
+      return /*#__PURE__*/React.createElement("button", {
+        key: p,
+        className: "tp-btn",
+        onClick: function onClick() {
+          return setActivePerson(p);
+        },
+        style: {
+          padding: "8px 18px",
+          borderRadius: 20,
+          fontSize: 15,
+          fontWeight: 600,
+          background: activePerson === p ? PALETTE.ink : PALETTE.paper,
+          color: activePerson === p ? "#fbf8f1" : PALETTE.inkSoft,
+          border: "1px solid ".concat(activePerson === p ? PALETTE.ink : PALETTE.line)
+        }
+      }, p === "main" ? "📋 主清單" : "\uD83D\uDC64 ".concat(p));
+    }), /*#__PURE__*/React.createElement(AddPersonBtn, {
+      onAdd: addPerson
+    })), /*#__PURE__*/React.createElement("div", {
       style: {
         background: PALETTE.paper,
         borderRadius: 12,
+        padding: "10px 14px",
         marginBottom: 10,
-        border: "1px solid ".concat(PALETTE.line),
-        overflow: "hidden"
+        border: "1px solid ".concat(PALETTE.line)
       }
-    }, /*#__PURE__*/React.createElement("button", {
-      className: "tp-btn",
-      onClick: function onClick() {
-        return toggleCat(cat);
-      },
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "center",
-        width: "100%",
-        padding: "12px 16px",
-        background: "transparent"
+        marginBottom: 6
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: 700
       }
-    }, cat), /*#__PURE__*/React.createElement("span", {
+    }, activePerson === "main" ? "主清單" : activePerson, " \u6253\u5305\u9032\u5EA6"), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 12,
-        color: PALETTE.inkSoft
+        fontSize: 15,
+        color: doneCount === totalCount && totalCount > 0 ? PALETTE.green : PALETTE.amber,
+        fontWeight: 600
       }
-    }, catItems.filter(function (i) {
-      return i.checked;
-    }).length, "/", catItems.length, " ", openCats[cat] ? "▲" : "▼")), openCats[cat] && /*#__PURE__*/React.createElement("div", {
+    }, doneCount, " / ", totalCount, " \u2713")), /*#__PURE__*/React.createElement("div", {
       style: {
-        padding: "0 16px 12px"
+        height: 6,
+        background: PALETTE.line,
+        borderRadius: 6,
+        overflow: "hidden"
       }
-    }, catItems.map(function (it) {
-      return /*#__PURE__*/React.createElement("label", {
-        key: it.id,
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: "".concat(totalCount ? doneCount / totalCount * 100 : 0, "%"),
+        height: "100%",
+        background: PALETTE.green,
+        transition: "width .3s"
+      }
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 8,
+        marginBottom: 10
+      }
+    }, cats.map(function (cat) {
+      var catItems = pcl[cat] || [];
+      var catDone = catItems.filter(function (i) {
+        return i.checked;
+      }).length;
+      var isOpen = openCats[cat];
+      return /*#__PURE__*/React.createElement("div", {
+        key: cat,
+        style: {
+          background: PALETTE.paper,
+          borderRadius: 12,
+          border: "1px solid ".concat(PALETTE.line),
+          overflow: "hidden",
+          gridColumn: isOpen ? "1/-1" : "auto"
+        }
+      }, /*#__PURE__*/React.createElement("button", {
+        className: "tp-btn",
+        onClick: function onClick() {
+          return toggleCat(cat);
+        },
         style: {
           display: "flex",
+          justifyContent: "space-between",
           alignItems: "center",
-          gap: 10,
-          padding: "7px 0",
-          borderBottom: "1px solid #f0e9db",
-          cursor: "pointer"
+          width: "100%",
+          padding: "10px 12px",
+          background: "transparent"
+        }
+      }, (editingCat === null || editingCat === void 0 ? void 0 : editingCat.oldKey) === cat ? /*#__PURE__*/React.createElement("input", {
+        autoFocus: true,
+        value: editingCat.newName,
+        onChange: function onChange(e) {
+          return setEditingCat(_objectSpread(_objectSpread({}, editingCat), {}, {
+            newName: e.target.value
+          }));
+        },
+        onBlur: function onBlur() {
+          return renameCategory(editingCat.oldKey, editingCat.newName);
+        },
+        onKeyDown: function onKeyDown(e) {
+          return e.key === "Enter" && renameCategory(editingCat.oldKey, editingCat.newName);
+        },
+        onClick: function onClick(e) {
+          return e.stopPropagation();
+        },
+        style: {
+          fontSize: 13,
+          fontWeight: 700,
+          border: "none",
+          borderBottom: "1px solid ".concat(PALETTE.gold),
+          background: "transparent",
+          outline: "none",
+          width: "80%"
+        }
+      }) : /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 15,
+          fontWeight: 700,
+          textAlign: "left"
+        },
+        onDoubleClick: function onDoubleClick(e) {
+          e.stopPropagation();
+          setEditingCat({
+            oldKey: cat,
+            newName: cat
+          });
+        }
+      }, cat), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 13,
+          color: catDone === catItems.length && catItems.length > 0 ? PALETTE.green : PALETTE.inkSoft,
+          marginLeft: 4,
+          flexShrink: 0
+        }
+      }, catDone, "/", catItems.length, " ", isOpen ? "▲" : "▼")), isOpen && /*#__PURE__*/React.createElement("div", {
+        style: {
+          padding: "0 12px 10px"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "2px 6px"
+        }
+      }, catItems.map(function (it) {
+        return /*#__PURE__*/React.createElement("label", {
+          key: it.id,
+          style: {
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 2px",
+            borderBottom: "1px solid #f5f0e8",
+            cursor: "pointer"
+          }
+        }, /*#__PURE__*/React.createElement("input", {
+          type: "checkbox",
+          checked: it.checked,
+          onChange: function onChange() {
+            return toggleCheck(cat, it.id);
+          },
+          style: {
+            width: 22,
+            height: 22,
+            cursor: "pointer",
+            accentColor: PALETTE.green,
+            flexShrink: 0
+          }
+        }), /*#__PURE__*/React.createElement("span", {
+          style: {
+            flex: 1,
+            fontSize: 15,
+            textDecoration: it.checked ? "line-through" : "none",
+            color: it.checked ? PALETTE.inkSoft : PALETTE.ink,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap"
+          }
+        }, it.text), /*#__PURE__*/React.createElement("span", {
+          onClick: function onClick(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            delItem(cat, it.id);
+          },
+          style: {
+            fontSize: 11,
+            color: "#d0c8bc",
+            cursor: "pointer",
+            flexShrink: 0
+          }
+        }, "\u2715"));
+      })), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 6,
+          marginTop: 8
         }
       }, /*#__PURE__*/React.createElement("input", {
-        type: "checkbox",
-        checked: it.checked,
-        onChange: function onChange() {
-          return toggleCheck(cat, it.id);
+        value: newItems[cat] || "",
+        onChange: function onChange(e) {
+          return setNewItems(function (p) {
+            return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, cat, e.target.value));
+          });
         },
-        style: {
-          width: 18,
-          height: 18,
-          cursor: "pointer",
-          accentColor: PALETTE.green
-        }
-      }), /*#__PURE__*/React.createElement("span", {
+        onKeyDown: function onKeyDown(e) {
+          return e.key === "Enter" && addItem(cat);
+        },
+        placeholder: "\u65B0\u589E\u9805\u76EE",
         style: {
           flex: 1,
-          fontSize: 14,
-          textDecoration: it.checked ? "line-through" : "none",
-          color: it.checked ? PALETTE.inkSoft : PALETTE.ink
+          padding: "5px 8px",
+          borderRadius: 8,
+          border: "1px solid ".concat(PALETTE.line),
+          fontSize: 12,
+          background: "#fff"
         }
-      }, it.text), /*#__PURE__*/React.createElement("span", {
-        onClick: function onClick(e) {
-          e.preventDefault();
-          delItem(cat, it.id);
+      }), /*#__PURE__*/React.createElement("button", {
+        className: "tp-btn",
+        onClick: function onClick() {
+          return addItem(cat);
         },
         style: {
-          fontSize: 12,
-          color: "#c9bda8",
-          cursor: "pointer"
+          padding: "5px 10px",
+          borderRadius: 8,
+          background: PALETTE.gold,
+          color: "#fff",
+          fontSize: 12
         }
-      }, "\u2715"));
-    }), /*#__PURE__*/React.createElement("div", {
+      }, "\u52A0"))));
+    })), /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
         gap: 8,
-        marginTop: 10
+        padding: "8px 0"
       }
     }, /*#__PURE__*/React.createElement("input", {
-      value: newItems[cat] || "",
+      value: newCatName,
       onChange: function onChange(e) {
-        return setNewItems(function (p) {
-          return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, cat, e.target.value));
-        });
+        return setNewCatName(e.target.value);
       },
       onKeyDown: function onKeyDown(e) {
-        return e.key === "Enter" && addItem(cat);
+        return e.key === "Enter" && addCategory();
       },
-      placeholder: "\uFF0B \u65B0\u589E\u9805\u76EE",
-      style: inp
+      placeholder: "\uFF0B \u65B0\u589E\u5206\u985E\uFF08\u4F8B\uFF1A\u85E5\u54C1\u3001\u96FB\u5B50\u7522\u54C1\uFF09",
+      style: {
+        flex: 1,
+        padding: "8px 12px",
+        borderRadius: 20,
+        border: "1.5px dashed ".concat(PALETTE.gold),
+        fontSize: 13,
+        background: "transparent",
+        color: PALETTE.gold,
+        outline: "none"
+      }
     }), /*#__PURE__*/React.createElement("button", {
       className: "tp-btn",
-      onClick: function onClick() {
-        return addItem(cat);
-      },
+      onClick: addCategory,
       style: {
-        padding: "7px 14px",
-        borderRadius: 8,
+        padding: "8px 16px",
+        borderRadius: 20,
         background: PALETTE.gold,
         color: "#fff",
         fontSize: 13,
         fontWeight: 600
       }
-    }, "\u52A0"))));
-  })), activeSection === "route" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    }, "\u52A0")));
+  }()), activeSection === "route" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       background: PALETTE.paper,
       borderRadius: 12,
@@ -3047,226 +3930,12 @@ function PrepView(_ref11) {
         minWidth: 60
       }
     }, "\uD83D\uDCCD", loc.name, loc.alt ? "\n".concat(loc.alt, "m") : ""));
-  })), activeSection === "country" && /*#__PURE__*/React.createElement("div", null, [{
-    k: "fr",
-    flag: "🇫🇷",
-    name: "法國",
-    dates: "6/3–6/13",
-    color: PALETTE.fr,
-    stats: [{
-      l: "首都",
-      v: "巴黎"
-    }, {
-      l: "面積",
-      v: "55.1萬 km²"
-    }, {
-      l: "人口",
-      v: "約6800萬"
-    }, {
-      l: "幣值",
-      v: "歐元 EUR €"
-    }, {
-      l: "插座",
-      v: "Type E (220V)"
-    }, {
-      l: "時區",
-      v: "UTC+2 (夏令)"
-    }],
-    emergency: {
-      police: "17",
-      ambulance: "15",
-      fire: "18",
-      tourist: "0892 68 3000"
-    }
-  }, {
-    k: "ch",
-    flag: "🇨🇭",
-    name: "瑞士",
-    dates: "6/13–6/24",
-    color: PALETTE.ch,
-    stats: [{
-      l: "首都",
-      v: "伯恩"
-    }, {
-      l: "面積",
-      v: "4.1萬 km²"
-    }, {
-      l: "人口",
-      v: "約880萬"
-    }, {
-      l: "幣值",
-      v: "瑞士法郎 CHF"
-    }, {
-      l: "插座",
-      v: "Type J (230V)"
-    }, {
-      l: "時區",
-      v: "UTC+2 (夏令)"
-    }],
-    emergency: {
-      police: "117",
-      ambulance: "144",
-      fire: "118",
-      tourist: "0800 100 200"
-    }
-  }, {
-    k: "it",
-    flag: "🇮🇹",
-    name: "義大利",
-    dates: "6/24–7/10",
-    color: PALETTE.it,
-    stats: [{
-      l: "首都",
-      v: "羅馬"
-    }, {
-      l: "面積",
-      v: "30.1萬 km²"
-    }, {
-      l: "人口",
-      v: "約5900萬"
-    }, {
-      l: "幣值",
-      v: "歐元 EUR €"
-    }, {
-      l: "插座",
-      v: "Type F/L (230V)"
-    }, {
-      l: "時區",
-      v: "UTC+2 (夏令)"
-    }],
-    emergency: {
-      police: "113",
-      ambulance: "118",
-      fire: "115",
-      tourist: "06 4890 1043"
-    }
-  }].map(function (c) {
-    return /*#__PURE__*/React.createElement("div", {
-      key: c.k,
-      style: {
-        background: PALETTE.paper,
-        borderRadius: 14,
-        marginBottom: 16,
-        border: "1px solid ".concat(PALETTE.line),
-        overflow: "hidden"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        padding: "14px 16px",
-        background: "".concat(c.color, "20"),
-        borderBottom: "1px solid ".concat(c.color, "40")
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      className: "tp-head",
-      style: {
-        fontSize: 20,
-        fontWeight: 800
-      }
-    }, c.flag, " ", c.name), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12,
-        background: "".concat(c.color, "30"),
-        color: c.color,
-        padding: "3px 10px",
-        borderRadius: 20,
-        fontWeight: 600
-      }
-    }, c.dates))), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr 1fr",
-        gap: 1,
-        background: PALETTE.line
-      }
-    }, c.stats.map(function (s, i) {
-      return /*#__PURE__*/React.createElement("div", {
-        key: i,
-        style: {
-          background: PALETTE.paper,
-          padding: "10px 12px"
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 10,
-          color: PALETTE.inkSoft,
-          marginBottom: 2
-        }
-      }, s.l), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 13,
-          fontWeight: 700
-        }
-      }, s.v));
-    })), /*#__PURE__*/React.createElement("div", {
-      style: {
-        padding: "10px 16px",
-        background: "#fff8f0",
-        borderTop: "1px solid ".concat(PALETTE.line),
-        display: "flex",
-        gap: 12,
-        flexWrap: "wrap"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11,
-        fontWeight: 600,
-        color: "#c04040"
-      }
-    }, "\uD83D\uDEA8 \u7DCA\u6025\u96FB\u8A71"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11
-      }
-    }, "\u8B66\u5BDF ", /*#__PURE__*/React.createElement("b", null, c.emergency.police)), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11
-      }
-    }, "\u6551\u8B77 ", /*#__PURE__*/React.createElement("b", null, c.emergency.ambulance)), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11
-      }
-    }, "\u6D88\u9632 ", /*#__PURE__*/React.createElement("b", null, c.emergency.fire))), /*#__PURE__*/React.createElement("div", {
-      style: {
-        padding: "12px 16px",
-        borderTop: "1px solid ".concat(PALETTE.line)
-      }
-    }, aiCountry[c.k] ? /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        lineHeight: 1.9
-      }
-    }, aiCountry[c.k]) : /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 12
-      }
-    }, /*#__PURE__*/React.createElement("button", {
-      className: "tp-btn",
-      onClick: function onClick() {
-        return genCountry(c.k);
-      },
-      disabled: busyCountry[c.k],
-      style: {
-        padding: "8px 18px",
-        borderRadius: 20,
-        background: c.color,
-        color: "#fff",
-        fontSize: 13,
-        fontWeight: 600
-      }
-    }, busyCountry[c.k] ? "生成中…" : "\uD83E\uDD16 \u751F\u6D3B\u7FD2\u6163\u30FB\u98A8\u4FD7\u7981\u5FCC"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11,
-        color: PALETTE.inkSoft
-      }
-    }, "\u5C0F\u8CBB\u6587\u5316\u3001\u4E0A\u5EC1\u6240\u3001\u8CFC\u7269\u79AE\u5100\u2026"))));
-  })), activeSection === "clothing" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  })), activeSection === "country" && /*#__PURE__*/React.createElement(CountrySection, {
+    items: items,
+    aiCountry: aiCountry,
+    busyCountry: busyCountry,
+    genCountry: genCountry
+  }), activeSection === "clothing" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       background: PALETTE.paper,
       borderRadius: 12,
@@ -3334,9 +4003,9 @@ function PrepView(_ref11) {
     }
   }, "\u91CD\u65B0\u751F\u6210"))));
 }
-function AddTravelerRow(_ref18) {
-  var gk = _ref18.gk,
-    onAdd = _ref18.onAdd;
+function AddTravelerRow(_ref26) {
+  var gk = _ref26.gk,
+    onAdd = _ref26.onAdd;
   var _React$useState = React.useState(""),
     _React$useState2 = _slicedToArray(_React$useState, 2),
     zh = _React$useState2[0],
@@ -3412,13 +4081,13 @@ function AddTravelerRow(_ref18) {
 }
 
 // ===== 設定 =====
-function Settings(_ref19) {
-  var settings = _ref19.settings,
-    onSave = _ref19.onSave;
-  var _useState47 = useState(JSON.parse(JSON.stringify(settings))),
-    _useState48 = _slicedToArray(_useState47, 2),
-    s = _useState48[0],
-    setS = _useState48[1];
+function Settings(_ref27) {
+  var settings = _ref27.settings,
+    onSave = _ref27.onSave;
+  var _useState69 = useState(JSON.parse(JSON.stringify(settings))),
+    _useState70 = _slicedToArray(_useState69, 2),
+    s = _useState70[0],
+    setS = _useState70[1];
   var inp = {
     width: "100%",
     padding: "8px 10px",
@@ -3764,14 +4433,14 @@ function Settings(_ref19) {
 }
 
 // ===== Modals =====
-function ItemEditor(_ref20) {
-  var item = _ref20.item,
-    settings = _ref20.settings,
-    _onSave = _ref20.onSave,
-    _onDelete = _ref20.onDelete,
-    onClose = _ref20.onClose,
-    travelers = _ref20.travelers;
-  var _useState49 = useState({
+function ItemEditor(_ref28) {
+  var item = _ref28.item,
+    settings = _ref28.settings,
+    _onSave = _ref28.onSave,
+    _onDelete = _ref28.onDelete,
+    onClose = _ref28.onClose,
+    travelers = _ref28.travelers;
+  var _useState71 = useState({
       date: item.date || "2026-06-13",
       country: item.country || "ch",
       type: item.type || "transport",
@@ -3791,9 +4460,9 @@ function ItemEditor(_ref20) {
       checkoutDate: item.checkoutDate || "",
       id: item.id
     }),
-    _useState50 = _slicedToArray(_useState49, 2),
-    f = _useState50[0],
-    setF = _useState50[1];
+    _useState72 = _slicedToArray(_useState71, 2),
+    f = _useState72[0],
+    setF = _useState72[1];
   var set = function set(k, v) {
     return setF(function (p) {
       return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, k, v));
@@ -3866,10 +4535,10 @@ function ItemEditor(_ref20) {
       return set("country", e.target.value);
     },
     style: inp
-  }, Object.entries(COUNTRY).map(function (_ref21) {
-    var _ref22 = _slicedToArray(_ref21, 2),
-      k = _ref22[0],
-      v = _ref22[1];
+  }, Object.entries(COUNTRY).map(function (_ref29) {
+    var _ref30 = _slicedToArray(_ref29, 2),
+      k = _ref30[0],
+      v = _ref30[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
@@ -3886,10 +4555,10 @@ function ItemEditor(_ref20) {
       return set("type", e.target.value);
     },
     style: inp
-  }, Object.entries(TYPE).map(function (_ref23) {
-    var _ref24 = _slicedToArray(_ref23, 2),
-      k = _ref24[0],
-      v = _ref24[1];
+  }, Object.entries(TYPE).map(function (_ref31) {
+    var _ref32 = _slicedToArray(_ref31, 2),
+      k = _ref32[0],
+      v = _ref32[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
@@ -3964,10 +4633,10 @@ function ItemEditor(_ref20) {
       return set("status", e.target.value);
     },
     style: inp
-  }, Object.entries(STATUS).map(function (_ref25) {
-    var _ref26 = _slicedToArray(_ref25, 2),
-      k = _ref26[0],
-      v = _ref26[1];
+  }, Object.entries(STATUS).map(function (_ref33) {
+    var _ref34 = _slicedToArray(_ref33, 2),
+      k = _ref34[0],
+      v = _ref34[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
@@ -4229,18 +4898,18 @@ function ItemEditor(_ref20) {
 }
 
 // ===== 日標題編輯 =====
-function DayHeaderEditor(_ref27) {
-  var day = _ref27.day,
-    onSave = _ref27.onSave,
-    onClose = _ref27.onClose;
-  var _useState51 = useState(day.title || ""),
-    _useState52 = _slicedToArray(_useState51, 2),
-    title = _useState52[0],
-    setTitle = _useState52[1];
-  var _useState53 = useState(day.country || "fr"),
-    _useState54 = _slicedToArray(_useState53, 2),
-    country = _useState54[0],
-    setCountry = _useState54[1];
+function DayHeaderEditor(_ref35) {
+  var day = _ref35.day,
+    onSave = _ref35.onSave,
+    onClose = _ref35.onClose;
+  var _useState73 = useState(day.title || ""),
+    _useState74 = _slicedToArray(_useState73, 2),
+    title = _useState74[0],
+    setTitle = _useState74[1];
+  var _useState75 = useState(day.country || "fr"),
+    _useState76 = _slicedToArray(_useState75, 2),
+    country = _useState76[0],
+    setCountry = _useState76[1];
   var inp = {
     width: "100%",
     padding: "9px 11px",
@@ -4266,10 +4935,10 @@ function DayHeaderEditor(_ref27) {
       return setCountry(e.target.value);
     },
     style: inp
-  }, Object.entries(COUNTRY).map(function (_ref28) {
-    var _ref29 = _slicedToArray(_ref28, 2),
-      k = _ref29[0],
-      v = _ref29[1];
+  }, Object.entries(COUNTRY).map(function (_ref36) {
+    var _ref37 = _slicedToArray(_ref36, 2),
+      k = _ref37[0],
+      v = _ref37[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
@@ -4318,16 +4987,16 @@ function DayHeaderEditor(_ref27) {
     }
   }, "\u53D6\u6D88")));
 }
-function AddDaysModal(_ref30) {
-  var onSave = _ref30.onSave,
-    onClose = _ref30.onClose;
-  var _useState55 = useState([{
+function AddDaysModal(_ref38) {
+  var onSave = _ref38.onSave,
+    onClose = _ref38.onClose;
+  var _useState77 = useState([{
       date: "",
       title: ""
     }]),
-    _useState56 = _slicedToArray(_useState55, 2),
-    rows = _useState56[0],
-    setRows = _useState56[1];
+    _useState78 = _slicedToArray(_useState77, 2),
+    rows = _useState78[0],
+    setRows = _useState78[1];
   var inp = {
     width: "100%",
     padding: "9px 11px",
@@ -4426,28 +5095,28 @@ function AddDaysModal(_ref30) {
     }
   }, "\u53D6\u6D88")));
 }
-function LocInfoModal(_ref31) {
-  var loc = _ref31.loc,
-    info = _ref31.info,
-    onAddLink = _ref31.onAddLink,
-    onDelLink = _ref31.onDelLink,
-    onUpdate = _ref31.onUpdate,
-    onClose = _ref31.onClose;
-  var _useState57 = useState({
+function LocInfoModal(_ref39) {
+  var loc = _ref39.loc,
+    info = _ref39.info,
+    onAddLink = _ref39.onAddLink,
+    onDelLink = _ref39.onDelLink,
+    onUpdate = _ref39.onUpdate,
+    onClose = _ref39.onClose;
+  var _useState79 = useState({
       title: "",
       url: ""
     }),
-    _useState58 = _slicedToArray(_useState57, 2),
-    nl = _useState58[0],
-    setNl = _useState58[1]; // 新連結
-  var _useState59 = useState(info.note || ""),
-    _useState60 = _slicedToArray(_useState59, 2),
-    note = _useState60[0],
-    setNote = _useState60[1];
-  var _useState61 = useState(false),
-    _useState62 = _slicedToArray(_useState61, 2),
-    busy = _useState62[0],
-    setBusy = _useState62[1];
+    _useState80 = _slicedToArray(_useState79, 2),
+    nl = _useState80[0],
+    setNl = _useState80[1]; // 新連結
+  var _useState81 = useState(info.note || ""),
+    _useState82 = _slicedToArray(_useState81, 2),
+    note = _useState82[0],
+    setNote = _useState82[1];
+  var _useState83 = useState(false),
+    _useState84 = _slicedToArray(_useState83, 2),
+    busy = _useState84[0],
+    setBusy = _useState84[1];
   var inp = {
     width: "100%",
     padding: "9px 11px",
@@ -4480,10 +5149,10 @@ function LocInfoModal(_ref31) {
     });
   };
   var genSummary = /*#__PURE__*/function () {
-    var _ref32 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
-      var linkList, hasUrls, res, data, txt, _t4;
-      return _regenerator().w(function (_context4) {
-        while (1) switch (_context4.p = _context4.n) {
+    var _ref40 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
+      var linkList, hasUrls, res, data, txt, _t6;
+      return _regenerator().w(function (_context6) {
+        while (1) switch (_context6.p = _context6.n) {
           case 0:
             setBusy(true);
             linkList = info.links.map(function (l, i) {
@@ -4492,9 +5161,9 @@ function LocInfoModal(_ref31) {
             hasUrls = info.links.some(function (l) {
               return l.url;
             });
-            _context4.p = 1;
-            _context4.n = 2;
-            return fetch("https://api.anthropic.com/v1/messages", {
+            _context6.p = 1;
+            _context6.n = 2;
+            return fetch("https://trip-ai-proxy.yesnonoman.workers.dev", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json"
@@ -4513,11 +5182,11 @@ function LocInfoModal(_ref31) {
               })
             });
           case 2:
-            res = _context4.v;
-            _context4.n = 3;
+            res = _context6.v;
+            _context6.n = 3;
             return res.json();
           case 3:
-            data = _context4.v;
+            data = _context6.v;
             txt = (data.content || []).filter(function (b) {
               return b.type === "text";
             }).map(function (b) {
@@ -4526,23 +5195,23 @@ function LocInfoModal(_ref31) {
             onUpdate(loc.id, {
               summary: txt
             });
-            _context4.n = 5;
+            _context6.n = 5;
             break;
           case 4:
-            _context4.p = 4;
-            _t4 = _context4.v;
+            _context6.p = 4;
+            _t6 = _context6.v;
             onUpdate(loc.id, {
               summary: "（速讀產生失敗，請稍後再試）"
             });
           case 5:
             setBusy(false);
           case 6:
-            return _context4.a(2);
+            return _context6.a(2);
         }
-      }, _callee4, null, [[1, 4]]);
+      }, _callee6, null, [[1, 4]]);
     }));
     return function genSummary() {
-      return _ref32.apply(this, arguments);
+      return _ref40.apply(this, arguments);
     };
   }();
   return /*#__PURE__*/React.createElement(Modal, {
@@ -4735,10 +5404,10 @@ function LocInfoModal(_ref31) {
     }
   }, "\u203B AI \u901F\u8B80\u6703\u76F4\u63A5\u8A2A\u554F\u9023\u7D50\u5167\u5BB9\uFF08\u9700\u7DB2\u8DEF\uFF09\u3002\u4E5F\u53EF\u628A\u6587\u7AE0\u5168\u6587\u8CBC\u9032\u7B46\u8A18\uFF0C\u901F\u8B80\u6703\u66F4\u7CBE\u6E96\u3002")));
 }
-function Modal(_ref33) {
-  var children = _ref33.children,
-    title = _ref33.title,
-    onClose = _ref33.onClose;
+function Modal(_ref41) {
+  var children = _ref41.children,
+    title = _ref41.title,
+    onClose = _ref41.onClose;
   return /*#__PURE__*/React.createElement("div", {
     onClick: onClose,
     style: {
@@ -4773,8 +5442,8 @@ function Modal(_ref33) {
     }
   }, title), children));
 }
-function Row(_ref34) {
-  var children = _ref34.children;
+function Row(_ref42) {
+  var children = _ref42.children;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -4783,11 +5452,11 @@ function Row(_ref34) {
     }
   }, children);
 }
-function EditorButtons(_ref35) {
-  var hasId = _ref35.hasId,
-    onSave = _ref35.onSave,
-    onDelete = _ref35.onDelete,
-    onClose = _ref35.onClose;
+function EditorButtons(_ref43) {
+  var hasId = _ref43.hasId,
+    onSave = _ref43.onSave,
+    onDelete = _ref43.onDelete,
+    onClose = _ref43.onClose;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
