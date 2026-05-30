@@ -827,29 +827,61 @@ const WMO_ICON = {
   95:"⛈️",96:"⛈️",99:"⛈️",
 };
 
-async function loadState() {
+const LOCAL_KEY = "trip2026_data";
+
+function initFb() {
+  if (window._fbDb) return window._fbDb;
   if (typeof firebase === "undefined") return null;
   try {
-    if (!window._fbDb) {
-      const cfg = { apiKey:"AIzaSyB5BinqD52fP2Q_45clCkZNAKPI_jZnaug", authDomain:"europe-tour-7f8d8.firebaseapp.com", databaseURL:"https://europe-tour-7f8d8-default-rtdb.asia-southeast1.firebasedatabase.app", projectId:"europe-tour-7f8d8", storageBucket:"europe-tour-7f8d8.firebasestorage.app", messagingSenderId:"513399245478", appId:"1:513399245478:web:dc8365e30df7c5cf710267" };
-      if (!firebase.apps.length) firebase.initializeApp(cfg);
-      window._fbDb = firebase.database();
-    }
-    const timeout = new Promise(resolve => setTimeout(() => resolve(null), 10000));
-    const fetched = window._fbDb.ref("tripData").get().then(s => s.exists() ? s.val() : null).catch(() => null);
-    return await Promise.race([fetched, timeout]);
+    const cfg = { apiKey:"AIzaSyB5BinqD52fP2Q_45clCkZNAKPI_jZnaug", authDomain:"europe-tour-7f8d8.firebaseapp.com", databaseURL:"https://europe-tour-7f8d8-default-rtdb.asia-southeast1.firebasedatabase.app", projectId:"europe-tour-7f8d8", storageBucket:"europe-tour-7f8d8.firebasestorage.app", messagingSenderId:"513399245478", appId:"1:513399245478:web:dc8365e30df7c5cf710267" };
+    if (!firebase.apps.length) firebase.initializeApp(cfg);
+    window._fbDb = firebase.database();
+    return window._fbDb;
   } catch(e) { return null; }
 }
-async function saveState(s) {
-  if (typeof firebase === "undefined") return;
+
+// 優先讀 localStorage，同時嘗試 Firebase
+async function loadState() {
+  // 1. 先試 localStorage（即時，毫秒級）
   try {
-    if (!window._fbDb) {
-      const cfg = { apiKey:"AIzaSyB5BinqD52fP2Q_45clCkZNAKPI_jZnaug", authDomain:"europe-tour-7f8d8.firebaseapp.com", databaseURL:"https://europe-tour-7f8d8-default-rtdb.asia-southeast1.firebasedatabase.app", projectId:"europe-tour-7f8d8", storageBucket:"europe-tour-7f8d8.firebasestorage.app", messagingSenderId:"513399245478", appId:"1:513399245478:web:dc8365e30df7c5cf710267" };
-      if (!firebase.apps.length) firebase.initializeApp(cfg);
-      window._fbDb = firebase.database();
+    const local = localStorage.getItem(LOCAL_KEY);
+    if (local) {
+      const parsed = JSON.parse(local);
+      if (parsed && parsed.items) {
+        // 背景嘗試 Firebase sync（不阻塞 UI）
+        const db = initFb();
+        if (db) {
+          db.ref("tripData").get()
+            .then(s => { if (s.exists()) { const fbData = s.val(); if (fbData && fbData._ts && (!parsed._ts || fbData._ts > parsed._ts)) { localStorage.setItem(LOCAL_KEY, JSON.stringify(fbData)); window.location.reload(); } } })
+            .catch(() => {});
+        }
+        return parsed;
+      }
     }
-    await window._fbDb.ref("tripData").set(s);
-  } catch(e) { console.error("Save failed:", e); }
+  } catch(e) {}
+  
+  // 2. localStorage 沒有，嘗試 Firebase
+  const db = initFb();
+  if (!db) return null;
+  try {
+    const timeout = new Promise(resolve => setTimeout(() => resolve(null), 8000));
+    const fetched = db.ref("tripData").get().then(s => s.exists() ? s.val() : null).catch(() => null);
+    const result = await Promise.race([fetched, timeout]);
+    if (result && result.items) {
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(result));
+    }
+    return result;
+  } catch(e) { return null; }
+}
+
+// 同時存 localStorage 和 Firebase
+async function saveState(s) {
+  const data = { ...s, _ts: Date.now() };
+  // 1. 立即存 localStorage
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); } catch(e) {}
+  // 2. 背景存 Firebase
+  const db = initFb();
+  if (db) { db.ref("tripData").set(data).catch(e => console.error("FB save:", e)); }
 }
 </script><script>"use strict";
 
