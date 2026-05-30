@@ -840,52 +840,66 @@ function initFb() {
   } catch(e) { return null; }
 }
 
-// 優先讀 localStorage，同時嘗試 Firebase
+// 初次載入：先用 localStorage 快速顯示，再用 Firebase 覆蓋
 async function loadState() {
-  // 1. 先試 localStorage（即時，毫秒級）
+  // 先試 localStorage 快速顯示
+  let localData = null;
   try {
-    const local = localStorage.getItem(LOCAL_KEY);
-    if (local) {
-      const parsed = JSON.parse(local);
-      if (parsed && parsed.items) {
-        // 背景嘗試 Firebase sync（不阻塞 UI）
-        const db = initFb();
-        if (db) {
-          db.ref("tripData").get()
-            .then(s => { if (s.exists()) { const fbData = s.val(); if (fbData && fbData._ts && (!parsed._ts || fbData._ts > parsed._ts)) { localStorage.setItem(LOCAL_KEY, JSON.stringify(fbData)); window.location.reload(); } } })
-            .catch(() => {});
-        }
-        return parsed;
-      }
-    }
+    const raw = localStorage.getItem(LOCAL_KEY);
+    if (raw) { const p = JSON.parse(raw); if (p && p.items) localData = p; }
   } catch(e) {}
-  
-  // 2. localStorage 沒有，嘗試 Firebase
+
+  // 嘗試 Firebase（最多等 6 秒）
   const db = initFb();
-  if (!db) return null;
-  try {
-    const timeout = new Promise(resolve => setTimeout(() => resolve(null), 8000));
-    const fetched = db.ref("tripData").get().then(s => s.exists() ? s.val() : null).catch(() => null);
-    const result = await Promise.race([fetched, timeout]);
-    if (result && result.items) {
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(result));
-    }
-    return result;
-  } catch(e) { return null; }
+  if (db) {
+    try {
+      const timeout = new Promise(resolve => setTimeout(() => resolve(null), 6000));
+      const fbPromise = db.ref("tripData").get()
+        .then(s => s.exists() ? s.val() : null)
+        .catch(() => null);
+      const fbData = await Promise.race([fbPromise, timeout]);
+      if (fbData && fbData.items) {
+        // Firebase 有資料，存到 localStorage 並回傳
+        try { localStorage.setItem(LOCAL_KEY, JSON.stringify(fbData)); } catch(e) {}
+        return fbData;
+      }
+    } catch(e) {}
+  }
+  return localData;
 }
 
-// 同時存 localStorage 和 Firebase
+// 儲存：同時寫 localStorage + Firebase
 async function saveState(s) {
   const data = { ...s, _ts: Date.now() };
-  // 1. 立即存 localStorage
   try { localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); } catch(e) {}
-  // 2. 背景存 Firebase
   const db = initFb();
-  if (db) { db.ref("tripData").set(data).catch(e => console.error("FB save:", e)); }
+  if (db) { db.ref("tripData").set(data).catch(e => console.error("FB:", e)); }
+}
+
+// 設定 Firebase 即時監聽（給其他裝置同步用）
+function setupRealtimeSync(onUpdate) {
+  const db = initFb();
+  if (!db) return;
+  let isFirst = true;
+  db.ref("tripData").on("value", snap => {
+    if (isFirst) { isFirst = false; return; } // 忽略第一次（已在 loadState 讀過）
+    if (snap.exists()) {
+      const fbData = snap.val();
+      if (fbData && fbData.items && fbData._ts) {
+        try {
+          const local = localStorage.getItem(LOCAL_KEY);
+          const localTs = local ? (JSON.parse(local)._ts || 0) : 0;
+          if (fbData._ts > localTs + 2000) { // 別人更新的（差距>2秒）
+            localStorage.setItem(LOCAL_KEY, JSON.stringify(fbData));
+            onUpdate(fbData); // 通知 React 更新
+          }
+        } catch(e) {}
+      }
+    }
+  });
 }
 </script><script>"use strict";
 
-function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i["return"]) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
@@ -899,6 +913,7 @@ function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t =
 function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
 function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
 function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
@@ -969,20 +984,47 @@ function TripPlanner() {
     _useState26 = _slicedToArray(_useState25, 2),
     editingDay = _useState26[0],
     setEditingDay = _useState26[1];
+
+  // 即時同步更新函數
+  var applyState = useCallback(function (s) {
+    if (s.items) setItems(s.items);
+    if (s.days) setDays(s.days);
+    if (s.infodata) setInfodata(s.infodata);
+    if (s.settings) setSettings(s.settings);
+    if (s.checklistData) setChecklistData(s.checklistData);
+    if (s.savedAiCountry) setSavedAiCountry(s.savedAiCountry);
+    if (s.savedAiCloth) setSavedAiCloth(s.savedAiCloth);
+    if (s.savedChats) setSavedChats(s.savedChats);
+  }, []);
   useEffect(function () {
     loadState().then(function (s) {
       if (s && s.items) {
         setItems(s.items);
-        setDays(s.days || SEED_DAYS);
+        var rawDays = s.days || SEED_DAYS;
+        var migratedDays = {};
+        Object.entries(rawDays).forEach(function (_ref) {
+          var _ref2 = _slicedToArray(_ref, 2),
+            date = _ref2[0],
+            val = _ref2[1];
+          if (_typeof(val) === "object" && val.title !== undefined) {
+            migratedDays[date] = val;
+          } else {
+            migratedDays[date] = {
+              title: val || "",
+              country: null
+            };
+          }
+        });
+        setDays(migratedDays);
         setInfodata(s.infodata || SEED_INFO);
         setSettings(s.settings || DEFAULT_SETTINGS);
       }
       // Load checklist - build default main list
       var defaultCL = {};
-      Object.entries(DEFAULT_CHECKLIST).forEach(function (_ref) {
-        var _ref2 = _slicedToArray(_ref, 2),
-          cat = _ref2[0],
-          items = _ref2[1];
+      Object.entries(DEFAULT_CHECKLIST).forEach(function (_ref3) {
+        var _ref4 = _slicedToArray(_ref3, 2),
+          cat = _ref4[0],
+          items = _ref4[1];
         defaultCL[cat] = items.map(function (text, i) {
           return {
             id: cat + i,
@@ -1012,6 +1054,8 @@ function TripPlanner() {
         });
       }
       setLoaded(true);
+      // 啟動即時同步監聽
+      setupRealtimeSync(applyState);
     });
   }, []);
   var persist = function persist(patch) {
@@ -1106,13 +1150,13 @@ function TripPlanner() {
     });
   };
   var saveDay = function saveDay(date, title, country) {
-    var nd = _objectSpread(_objectSpread({}, days), {}, _defineProperty({}, date, title));
+    // Store both title and country in days
+    var nd = _objectSpread(_objectSpread({}, days), {}, _defineProperty({}, date, {
+      title: title,
+      country: country
+    }));
     setDays(nd);
-    persist({
-      days: nd
-    });
-    setEditingDay(null);
-    // update country for all items on this date that have no existing items
+    // Also update all items on this date
     var ni = items.map(function (it) {
       return it.date === date ? _objectSpread(_objectSpread({}, it), {}, {
         country: country
@@ -1123,6 +1167,7 @@ function TripPlanner() {
       days: nd,
       items: ni
     });
+    setEditingDay(null);
   };
   var TABS = [{
     k: "prep",
@@ -1339,8 +1384,8 @@ function TripPlanner() {
 }
 
 // ===== 天氣小工具 =====
-function WeatherWidget(_ref3) {
-  var date = _ref3.date;
+function WeatherWidget(_ref5) {
+  var date = _ref5.date;
   var _useState27 = useState(null),
     _useState28 = _slicedToArray(_useState27, 2),
     wx = _useState28[0],
@@ -1450,14 +1495,14 @@ function WeatherWidget(_ref3) {
 }
 
 // ===== 每日卡片 =====
-function DayCards(_ref4) {
-  var items = _ref4.items,
-    days = _ref4.days,
-    toTWD = _ref4.toTWD,
-    onEdit = _ref4.onEdit,
-    onAddSlot = _ref4.onAddSlot,
-    onAddDays = _ref4.onAddDays,
-    onEditDay = _ref4.onEditDay;
+function DayCards(_ref6) {
+  var items = _ref6.items,
+    days = _ref6.days,
+    toTWD = _ref6.toTWD,
+    onEdit = _ref6.onEdit,
+    onAddSlot = _ref6.onAddSlot,
+    onAddDays = _ref6.onAddDays,
+    onEditDay = _ref6.onEditDay;
   var allDates = Array.from(new Set([].concat(_toConsumableArray(Object.keys(days)), _toConsumableArray(items.map(function (i) {
     return i.date;
   }))))).sort();
@@ -1497,14 +1542,17 @@ function DayCards(_ref4) {
     var dayItems = items.filter(function (i) {
       return i.date === d;
     });
-    // Lodging from other check-in dates that covers this night
     var coveredLodging = items.filter(function (it) {
       return it.type === "lodging" && it.checkoutDate && it.date < d && d < it.checkoutDate;
     });
+    var dayData = days[d];
+    var dayTitle = _typeof(dayData) === "object" ? dayData.title : dayData;
+    var dayCountry = _typeof(dayData) === "object" ? dayData.country : null;
     return /*#__PURE__*/React.createElement(DayCard, {
       key: d,
       date: d,
-      title: days[d],
+      title: dayTitle,
+      dayCountry: dayCountry,
       dayItems: dayItems,
       coveredLodging: coveredLodging,
       toTWD: toTWD,
@@ -1518,18 +1566,25 @@ function DayCards(_ref4) {
     });
   }));
 }
-function DayCard(_ref5) {
-  var date = _ref5.date,
-    title = _ref5.title,
-    dayItems = _ref5.dayItems,
-    coveredLodging = _ref5.coveredLodging,
-    toTWD = _ref5.toTWD,
-    onEdit = _ref5.onEdit,
-    onAddSlot = _ref5.onAddSlot,
-    onEditDay = _ref5.onEditDay,
-    collapsed = _ref5.collapsed,
-    onToggle = _ref5.onToggle;
-  var c = COUNTRY[(dayItems[0] || {}).country] || COUNTRY.fr;
+function DayCard(_ref7) {
+  var date = _ref7.date,
+    title = _ref7.title,
+    dayCountry = _ref7.dayCountry,
+    dayItems = _ref7.dayItems,
+    coveredLodging = _ref7.coveredLodging,
+    toTWD = _ref7.toTWD,
+    onEdit = _ref7.onEdit,
+    onAddSlot = _ref7.onAddSlot,
+    onEditDay = _ref7.onEditDay,
+    collapsed = _ref7.collapsed,
+    onToggle = _ref7.onToggle;
+  var itemCountry = (dayItems[0] || {}).country;
+  var resolvedCountry = itemCountry || dayCountry;
+  var c = COUNTRY[resolvedCountry] || {
+    color: "#9a8a7a",
+    label: resolvedCountry ? "" : "未設定",
+    flag: ""
+  };
   var timed = dayItems.filter(function (i) {
     return i.time;
   }).sort(function (a, b) {
@@ -1605,7 +1660,7 @@ function DayCard(_ref5) {
       onEditDay({
         date: date,
         title: title || "",
-        country: (dayItems[0] || {}).country || "fr"
+        country: itemCountry || dayCountry || "fr"
       });
     },
     style: {
@@ -1873,10 +1928,10 @@ function DayCard(_ref5) {
 }
 
 // ===== 待辦（自動判斷）=====
-function TodoView(_ref6) {
-  var items = _ref6.items,
-    toTWD = _ref6.toTWD,
-    onEdit = _ref6.onEdit;
+function TodoView(_ref8) {
+  var items = _ref8.items,
+    toTWD = _ref8.toTWD,
+    onEdit = _ref8.onEdit;
   // 自動判斷：交通/門票/住宿 需預訂。有 Drive 連結+票號 => 視為完成
   var isDone = function isDone(it) {
     return it.qr && it.ref;
@@ -1893,9 +1948,9 @@ function TodoView(_ref6) {
   pending.sort(function (a, b) {
     return a.date.localeCompare(b.date);
   });
-  var Card = function Card(_ref7) {
-    var it = _ref7.it,
-      done = _ref7.done;
+  var Card = function Card(_ref9) {
+    var it = _ref9.it,
+      done = _ref9.done;
     var t = TYPE[it.type],
       c = COUNTRY[it.country];
     return /*#__PURE__*/React.createElement("button", {
@@ -2061,10 +2116,10 @@ function computeShares(it, settings, toTWD) {
     delta: delta
   };
 }
-function CostView(_ref8) {
-  var items = _ref8.items,
-    settings = _ref8.settings,
-    toTWD = _ref8.toTWD;
+function CostView(_ref0) {
+  var items = _ref0.items,
+    settings = _ref0.settings,
+    toTWD = _ref0.toTWD;
   var m = useMemo(function () {
     var total = items.reduce(function (s, i) {
       return s + toTWD(i.amount, i.cur);
@@ -2272,12 +2327,12 @@ function CostView(_ref8) {
     sum: catSum(m.perGroup.kid)
   })));
 }
-function GroupBlock(_ref9) {
-  var title = _ref9.title,
-    color = _ref9.color,
-    adults = _ref9.adults,
-    data = _ref9.data,
-    sum = _ref9.sum;
+function GroupBlock(_ref1) {
+  var title = _ref1.title,
+    color = _ref1.color,
+    adults = _ref1.adults,
+    data = _ref1.data,
+    sum = _ref1.sum;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
@@ -2388,11 +2443,11 @@ function ytEmbed(url) {
 // INFO_CAT removed - simplified to name+URL only
 
 // ===== 資訊庫（天 → 地點卡，自動連動每日行程項目）=====
-function InfoLibrary(_ref0) {
-  var days = _ref0.days,
-    items = _ref0.items,
-    infodata = _ref0.infodata,
-    onOpen = _ref0.onOpen;
+function InfoLibrary(_ref10) {
+  var days = _ref10.days,
+    items = _ref10.items,
+    infodata = _ref10.infodata,
+    onOpen = _ref10.onOpen;
   var dates = Array.from(new Set([].concat(_toConsumableArray(Object.keys(days)), _toConsumableArray(items.map(function (i) {
     return i.date;
   }))))).sort();
@@ -2514,8 +2569,8 @@ function InfoLibrary(_ref0) {
 }
 
 // ===== 路線 AI 摘要 =====
-function RouteAISummary(_ref1) {
-  var days = _ref1.days;
+function RouteAISummary(_ref11) {
+  var days = _ref11.days;
   var _useState35 = useState(""),
     _useState36 = _slicedToArray(_useState35, 2),
     summary = _useState36[0],
@@ -2525,16 +2580,16 @@ function RouteAISummary(_ref1) {
     busy = _useState38[0],
     setBusy = _useState38[1];
   var gen = /*#__PURE__*/function () {
-    var _ref10 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
+    var _ref12 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
       var dayList, res, data, txt, _t;
       return _regenerator().w(function (_context) {
         while (1) switch (_context.p = _context.n) {
           case 0:
             setBusy(true);
-            dayList = Object.entries(days).sort().map(function (_ref11) {
-              var _ref12 = _slicedToArray(_ref11, 2),
-                d = _ref12[0],
-                t = _ref12[1];
+            dayList = Object.entries(days).sort().map(function (_ref13) {
+              var _ref14 = _slicedToArray(_ref13, 2),
+                d = _ref14[0],
+                t = _ref14[1];
               return "".concat(d.slice(5).replace("-", "/"), " ").concat(t);
             }).join("\n");
             _context.p = 1;
@@ -2579,7 +2634,7 @@ function RouteAISummary(_ref1) {
       }, _callee, null, [[1, 4]]);
     }));
     return function gen() {
-      return _ref10.apply(this, arguments);
+      return _ref12.apply(this, arguments);
     };
   }();
   if (!summary) return /*#__PURE__*/React.createElement("div", {
@@ -2726,9 +2781,9 @@ var COUNTRY_CONFIG = [{
     fire: "115"
   }
 }];
-function AttractionChips(_ref13) {
-  var items = _ref13.items,
-    color = _ref13.color;
+function AttractionChips(_ref15) {
+  var items = _ref15.items,
+    color = _ref15.color;
   var _useState39 = useState(null),
     _useState40 = _slicedToArray(_useState39, 2),
     selected = _useState40[0],
@@ -2742,7 +2797,7 @@ function AttractionChips(_ref13) {
     busy = _useState44[0],
     setBusy = _useState44[1];
   var select = /*#__PURE__*/function () {
-    var _ref14 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(it) {
+    var _ref16 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(it) {
       var res, data, txt, _t2;
       return _regenerator().w(function (_context2) {
         while (1) switch (_context2.p = _context2.n) {
@@ -2812,7 +2867,7 @@ function AttractionChips(_ref13) {
       }, _callee2, null, [[3, 6]]);
     }));
     return function select(_x2) {
-      return _ref14.apply(this, arguments);
+      return _ref16.apply(this, arguments);
     };
   }();
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
@@ -2904,11 +2959,11 @@ function AttractionChips(_ref13) {
     }, "\uD83D\uDCA1 \u628A\u9019\u500B\u666F\u9EDE\u8CBC\u5230 Claude \u5C0D\u8A71\uFF0C\u53EF\u4EE5\u7372\u5F97\u66F4\u8A73\u7D30\u4ECB\u7D39"));
   }());
 }
-function CountryNotes(_ref15) {
-  var countryKey = _ref15.countryKey,
-    color = _ref15.color,
-    savedChats = _ref15.savedChats,
-    onChatChange = _ref15.onChatChange;
+function CountryNotes(_ref17) {
+  var countryKey = _ref17.countryKey,
+    color = _ref17.color,
+    savedChats = _ref17.savedChats,
+    onChatChange = _ref17.onChatChange;
   var notes = savedChats && savedChats[countryKey];
   var _useState45 = useState(typeof notes === "string" ? notes : ""),
     _useState46 = _slicedToArray(_useState45, 2),
@@ -2964,13 +3019,13 @@ function CountryNotes(_ref15) {
     }
   }));
 }
-function CountrySection(_ref16) {
-  var items = _ref16.items,
-    aiCountry = _ref16.aiCountry,
-    busyCountry = _ref16.busyCountry,
-    genCountry = _ref16.genCountry,
-    savedChats = _ref16.savedChats,
-    onChatChange = _ref16.onChatChange;
+function CountrySection(_ref18) {
+  var items = _ref18.items,
+    aiCountry = _ref18.aiCountry,
+    busyCountry = _ref18.busyCountry,
+    genCountry = _ref18.genCountry,
+    savedChats = _ref18.savedChats,
+    onChatChange = _ref18.onChatChange;
   return /*#__PURE__*/React.createElement("div", null, COUNTRY_CONFIG.map(function (c) {
     // Get tickets/attractions for this country
     var attractions = items.filter(function (it) {
@@ -3096,8 +3151,8 @@ function CountrySection(_ref16) {
     })));
   }));
 }
-function AddPersonBtn(_ref17) {
-  var onAdd = _ref17.onAdd;
+function AddPersonBtn(_ref19) {
+  var onAdd = _ref19.onAdd;
   var _useState47 = useState(false),
     _useState48 = _slicedToArray(_useState47, 2),
     show = _useState48[0],
@@ -3178,18 +3233,18 @@ function AddPersonBtn(_ref17) {
 }
 
 // ===== 行前準備 =====
-function PrepView(_ref18) {
-  var days = _ref18.days,
-    items = _ref18.items,
-    settings = _ref18.settings,
-    checklistData = _ref18.checklistData,
-    onChecklistChange = _ref18.onChecklistChange,
-    savedAiCountry = _ref18.savedAiCountry,
-    onAiCountryChange = _ref18.onAiCountryChange,
-    savedAiCloth = _ref18.savedAiCloth,
-    onAiClothChange = _ref18.onAiClothChange,
-    savedChats = _ref18.savedChats,
-    onChatChange = _ref18.onChatChange;
+function PrepView(_ref20) {
+  var days = _ref20.days,
+    items = _ref20.items,
+    settings = _ref20.settings,
+    checklistData = _ref20.checklistData,
+    onChecklistChange = _ref20.onChecklistChange,
+    savedAiCountry = _ref20.savedAiCountry,
+    onAiCountryChange = _ref20.onAiCountryChange,
+    savedAiCloth = _ref20.savedAiCloth,
+    onAiClothChange = _ref20.onAiClothChange,
+    savedChats = _ref20.savedChats,
+    onChatChange = _ref20.onChatChange;
   var updateChecklist = function updateChecklist(newCL) {
     onChecklistChange(newCL);
   };
@@ -3282,10 +3337,10 @@ function PrepView(_ref18) {
     }
     var pcl = getPersonCL();
     var reordered = {};
-    Object.entries(pcl).forEach(function (_ref19) {
-      var _ref20 = _slicedToArray(_ref19, 2),
-        k = _ref20[0],
-        v = _ref20[1];
+    Object.entries(pcl).forEach(function (_ref21) {
+      var _ref22 = _slicedToArray(_ref21, 2),
+        k = _ref22[0],
+        v = _ref22[1];
       reordered[k === oldKey ? newKey : k] = v;
     });
     setPersonCL(reordered);
@@ -3296,10 +3351,10 @@ function PrepView(_ref18) {
     // Copy structure from main but reset checked
     var mainPCL = checklistData["main"] || {};
     var newPCL = {};
-    Object.entries(mainPCL).forEach(function (_ref21) {
-      var _ref22 = _slicedToArray(_ref21, 2),
-        cat = _ref22[0],
-        items = _ref22[1];
+    Object.entries(mainPCL).forEach(function (_ref23) {
+      var _ref24 = _slicedToArray(_ref23, 2),
+        cat = _ref24[0],
+        items = _ref24[1];
       newPCL[cat] = items.map(function (it) {
         return _objectSpread(_objectSpread({}, it), {}, {
           checked: false
@@ -3321,6 +3376,10 @@ function PrepView(_ref18) {
     });
   };
   var allDates = Object.keys(days).sort();
+  var getDayTitle = function getDayTitle(d) {
+    var v = days[d];
+    return _typeof(v) === "object" ? v.title : v;
+  };
   var inp = {
     padding: "7px 10px",
     borderRadius: 8,
@@ -3330,7 +3389,7 @@ function PrepView(_ref18) {
     flex: 1
   };
   var genClothing = /*#__PURE__*/function () {
-    var _ref23 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
+    var _ref25 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
       var res, data, txt, _t3;
       return _regenerator().w(function (_context3) {
         while (1) switch (_context3.p = _context3.n) {
@@ -3382,11 +3441,11 @@ function PrepView(_ref18) {
       }, _callee3, null, [[1, 4]]);
     }));
     return function genClothing() {
-      return _ref23.apply(this, arguments);
+      return _ref25.apply(this, arguments);
     };
   }();
   var genCountry = /*#__PURE__*/function () {
-    var _ref24 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(country) {
+    var _ref26 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(country) {
       var names, res, data, txt, _t4;
       return _regenerator().w(function (_context4) {
         while (1) switch (_context4.p = _context4.n) {
@@ -3447,7 +3506,7 @@ function PrepView(_ref18) {
       }, _callee4, null, [[1, 4]]);
     }));
     return function genCountry(_x3) {
-      return _ref24.apply(this, arguments);
+      return _ref26.apply(this, arguments);
     };
   }();
   var SECTIONS = [{
@@ -3962,9 +4021,9 @@ function PrepView(_ref18) {
     }
   }, "\u300C\u6211\u662F\u5E364\u6B72\u548C2\u6B72\u5C0F\u5B69\u7684\u53F0\u7063\u5BB6\u5EAD\uFF0C6\u6708\u521D\u52307\u6708\u521D\u53BB\u6CD5\u570B\u2192\u745E\u58EB\u2192\u7FA9\u5927\u522938\u5929\uFF0C\u884C\u7A0B\u5305\u542B\u5C11\u5973\u5CF03454m\u3001\u76AE\u62C9\u5716\u65AF\u5C71\u3001\u7B56\u99AC\u7279\uFF0C\u5E6B\u6211\u6574\u7406\u8A73\u7D30\u6253\u5305\u8863\u7269\u6E05\u55AE\u300D")))));
 }
-function AddTravelerRow(_ref25) {
-  var gk = _ref25.gk,
-    onAdd = _ref25.onAdd;
+function AddTravelerRow(_ref27) {
+  var gk = _ref27.gk,
+    onAdd = _ref27.onAdd;
   var _React$useState = React.useState(""),
     _React$useState2 = _slicedToArray(_React$useState, 2),
     zh = _React$useState2[0],
@@ -4040,9 +4099,9 @@ function AddTravelerRow(_ref25) {
 }
 
 // ===== 設定 =====
-function Settings(_ref26) {
-  var settings = _ref26.settings,
-    onSave = _ref26.onSave;
+function Settings(_ref28) {
+  var settings = _ref28.settings,
+    onSave = _ref28.onSave;
   var _useState67 = useState(JSON.parse(JSON.stringify(settings))),
     _useState68 = _slicedToArray(_useState67, 2),
     s = _useState68[0],
@@ -4392,13 +4451,13 @@ function Settings(_ref26) {
 }
 
 // ===== Modals =====
-function ItemEditor(_ref27) {
-  var item = _ref27.item,
-    settings = _ref27.settings,
-    _onSave = _ref27.onSave,
-    _onDelete = _ref27.onDelete,
-    onClose = _ref27.onClose,
-    travelers = _ref27.travelers;
+function ItemEditor(_ref29) {
+  var item = _ref29.item,
+    settings = _ref29.settings,
+    _onSave = _ref29.onSave,
+    _onDelete = _ref29.onDelete,
+    onClose = _ref29.onClose,
+    travelers = _ref29.travelers;
   var _useState69 = useState({
       date: item.date || "2026-06-13",
       country: item.country || "ch",
@@ -4494,10 +4553,10 @@ function ItemEditor(_ref27) {
       return set("country", e.target.value);
     },
     style: inp
-  }, Object.entries(COUNTRY).map(function (_ref28) {
-    var _ref29 = _slicedToArray(_ref28, 2),
-      k = _ref29[0],
-      v = _ref29[1];
+  }, Object.entries(COUNTRY).map(function (_ref30) {
+    var _ref31 = _slicedToArray(_ref30, 2),
+      k = _ref31[0],
+      v = _ref31[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
@@ -4514,10 +4573,10 @@ function ItemEditor(_ref27) {
       return set("type", e.target.value);
     },
     style: inp
-  }, Object.entries(TYPE).map(function (_ref30) {
-    var _ref31 = _slicedToArray(_ref30, 2),
-      k = _ref31[0],
-      v = _ref31[1];
+  }, Object.entries(TYPE).map(function (_ref32) {
+    var _ref33 = _slicedToArray(_ref32, 2),
+      k = _ref33[0],
+      v = _ref33[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
@@ -4592,10 +4651,10 @@ function ItemEditor(_ref27) {
       return set("status", e.target.value);
     },
     style: inp
-  }, Object.entries(STATUS).map(function (_ref32) {
-    var _ref33 = _slicedToArray(_ref32, 2),
-      k = _ref33[0],
-      v = _ref33[1];
+  }, Object.entries(STATUS).map(function (_ref34) {
+    var _ref35 = _slicedToArray(_ref34, 2),
+      k = _ref35[0],
+      v = _ref35[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
@@ -4857,10 +4916,10 @@ function ItemEditor(_ref27) {
 }
 
 // ===== 日標題編輯 =====
-function DayHeaderEditor(_ref34) {
-  var day = _ref34.day,
-    onSave = _ref34.onSave,
-    onClose = _ref34.onClose;
+function DayHeaderEditor(_ref36) {
+  var day = _ref36.day,
+    onSave = _ref36.onSave,
+    onClose = _ref36.onClose;
   var _useState71 = useState(day.title || ""),
     _useState72 = _slicedToArray(_useState71, 2),
     title = _useState72[0],
@@ -4894,10 +4953,10 @@ function DayHeaderEditor(_ref34) {
       return setCountry(e.target.value);
     },
     style: inp
-  }, Object.entries(COUNTRY).map(function (_ref35) {
-    var _ref36 = _slicedToArray(_ref35, 2),
-      k = _ref36[0],
-      v = _ref36[1];
+  }, Object.entries(COUNTRY).map(function (_ref37) {
+    var _ref38 = _slicedToArray(_ref37, 2),
+      k = _ref38[0],
+      v = _ref38[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
@@ -4946,9 +5005,9 @@ function DayHeaderEditor(_ref34) {
     }
   }, "\u53D6\u6D88")));
 }
-function AddDaysModal(_ref37) {
-  var onSave = _ref37.onSave,
-    onClose = _ref37.onClose;
+function AddDaysModal(_ref39) {
+  var onSave = _ref39.onSave,
+    onClose = _ref39.onClose;
   var _useState75 = useState([{
       date: "",
       title: ""
@@ -5054,13 +5113,13 @@ function AddDaysModal(_ref37) {
     }
   }, "\u53D6\u6D88")));
 }
-function LocInfoModal(_ref38) {
-  var loc = _ref38.loc,
-    info = _ref38.info,
-    onAddLink = _ref38.onAddLink,
-    onDelLink = _ref38.onDelLink,
-    onUpdate = _ref38.onUpdate,
-    onClose = _ref38.onClose;
+function LocInfoModal(_ref40) {
+  var loc = _ref40.loc,
+    info = _ref40.info,
+    onAddLink = _ref40.onAddLink,
+    onDelLink = _ref40.onDelLink,
+    onUpdate = _ref40.onUpdate,
+    onClose = _ref40.onClose;
   var _useState77 = useState({
       title: "",
       url: ""
@@ -5108,7 +5167,7 @@ function LocInfoModal(_ref38) {
     });
   };
   var genSummary = /*#__PURE__*/function () {
-    var _ref39 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
+    var _ref41 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
       var linkList, hasUrls, res, data, txt, _t5;
       return _regenerator().w(function (_context5) {
         while (1) switch (_context5.p = _context5.n) {
@@ -5170,7 +5229,7 @@ function LocInfoModal(_ref38) {
       }, _callee5, null, [[1, 4]]);
     }));
     return function genSummary() {
-      return _ref39.apply(this, arguments);
+      return _ref41.apply(this, arguments);
     };
   }();
   return /*#__PURE__*/React.createElement(Modal, {
@@ -5319,10 +5378,10 @@ function LocInfoModal(_ref38) {
     }
   }, "\uD83D\uDCA1 \u628A\u91CD\u8981\u8CC7\u8A0A\u8CBC\u5230\u300C\u6211\u7684\u7B46\u8A18\u300D\uFF0C\u6216\u628A\u9023\u7D50\u4E1F\u7D66 Claude \u5C0D\u8A71\u5E6B\u4F60\u6574\u7406\u91CD\u9EDE\u5F8C\u8CBC\u56DE\u4F86\u3002"));
 }
-function Modal(_ref40) {
-  var children = _ref40.children,
-    title = _ref40.title,
-    onClose = _ref40.onClose;
+function Modal(_ref42) {
+  var children = _ref42.children,
+    title = _ref42.title,
+    onClose = _ref42.onClose;
   return /*#__PURE__*/React.createElement("div", {
     onClick: onClose,
     style: {
@@ -5357,8 +5416,8 @@ function Modal(_ref40) {
     }
   }, title), children));
 }
-function Row(_ref41) {
-  var children = _ref41.children;
+function Row(_ref43) {
+  var children = _ref43.children;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -5367,11 +5426,11 @@ function Row(_ref41) {
     }
   }, children);
 }
-function EditorButtons(_ref42) {
-  var hasId = _ref42.hasId,
-    onSave = _ref42.onSave,
-    onDelete = _ref42.onDelete,
-    onClose = _ref42.onClose;
+function EditorButtons(_ref44) {
+  var hasId = _ref44.hasId,
+    onSave = _ref44.onSave,
+    onDelete = _ref44.onDelete,
+    onClose = _ref44.onClose;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
