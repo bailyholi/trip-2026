@@ -2338,13 +2338,13 @@ function callAI(_x) {
   return _callAI.apply(this, arguments);
 } // 影片連結 -> 嵌入網址
 function _callAI() {
-  _callAI = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7(prompt) {
-    var res, data, _t7;
-    return _regenerator().w(function (_context7) {
-      while (1) switch (_context7.p = _context7.n) {
+  _callAI = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6(prompt) {
+    var res, data, _t6;
+    return _regenerator().w(function (_context6) {
+      while (1) switch (_context6.p = _context6.n) {
         case 0:
-          _context7.p = 0;
-          _context7.n = 1;
+          _context6.p = 0;
+          _context6.n = 1;
           return fetch("https://trip-ai-proxy.yesnonoman.workers.dev", {
             method: "POST",
             headers: {
@@ -2360,22 +2360,22 @@ function _callAI() {
             })
           });
         case 1:
-          res = _context7.v;
-          _context7.n = 2;
+          res = _context6.v;
+          _context6.n = 2;
           return res.json();
         case 2:
-          data = _context7.v;
-          return _context7.a(2, data.content.filter(function (b) {
+          data = _context6.v;
+          return _context6.a(2, data.content.filter(function (b) {
             return b.type === "text";
           }).map(function (b) {
             return b.text;
           }).join("\n").trim());
         case 3:
-          _context7.p = 3;
-          _t7 = _context7.v;
-          return _context7.a(2, "（AI 產生失敗，請稍後再試）");
+          _context6.p = 3;
+          _t6 = _context6.v;
+          return _context6.a(2, "（AI 產生失敗，請稍後再試）");
       }
-    }, _callee7, null, [[0, 3]]);
+    }, _callee6, null, [[0, 3]]);
   }));
   return _callAI.apply(this, arguments);
 }
@@ -2895,122 +2895,33 @@ function AttractionChips(_ref13) {
         background: "#fff",
         borderRadius: 8
       }
-    }, "\uD83D\uDCDD ", it.note), busy[it.id] ? /*#__PURE__*/React.createElement("div", {
+    }, "\uD83D\uDCDD ", it.note), it.note && /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 12,
-        color: "#c9bda8"
+        color: PALETTE.inkSoft,
+        marginTop: 4
       }
-    }, "AI \u751F\u6210\u4E2D\u2026") : infos[it.id] ? /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        lineHeight: 1.8,
-        color: "#2c2620"
-      }
-    }, "\u2728 ", infos[it.id]) : /*#__PURE__*/React.createElement("button", {
-      className: "tp-btn",
-      onClick: function onClick() {
-        return select(it);
-      },
-      style: {
-        fontSize: 12,
-        padding: "5px 14px",
-        borderRadius: 16,
-        background: color,
-        color: "#fff"
-      }
-    }, "\uD83E\uDD16 AI \u666F\u9EDE\u7C21\u4ECB"));
+    }, "\uD83D\uDCA1 \u628A\u9019\u500B\u666F\u9EDE\u8CBC\u5230 Claude \u5C0D\u8A71\uFF0C\u53EF\u4EE5\u7372\u5F97\u66F4\u8A73\u7D30\u4ECB\u7D39"));
   }());
 }
-function CountryChat(_ref15) {
-  var countryName = _ref15.countryName,
+function CountryNotes(_ref15) {
+  var countryKey = _ref15.countryKey,
     color = _ref15.color,
-    savedMsgs = _ref15.savedMsgs,
-    onMsgsChange = _ref15.onMsgsChange;
-  var _useState45 = useState(savedMsgs || []),
+    savedChats = _ref15.savedChats,
+    onChatChange = _ref15.onChatChange;
+  var notes = savedChats && savedChats[countryKey];
+  var _useState45 = useState(typeof notes === "string" ? notes : ""),
     _useState46 = _slicedToArray(_useState45, 2),
-    msgs = _useState46[0],
-    setMsgs = _useState46[1];
-  var _useState47 = useState(""),
-    _useState48 = _slicedToArray(_useState47, 2),
-    input = _useState48[0],
-    setInput = _useState48[1];
-  var _useState49 = useState(false),
-    _useState50 = _slicedToArray(_useState49, 2),
-    busy = _useState50[0],
-    setBusy = _useState50[1];
-  var send = /*#__PURE__*/function () {
-    var _ref16 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
-      var q, newMsgs, res, data, txt, finalMsgs, errMsgs, _t3;
-      return _regenerator().w(function (_context3) {
-        while (1) switch (_context3.p = _context3.n) {
-          case 0:
-            q = input.trim();
-            if (!(!q || busy)) {
-              _context3.n = 1;
-              break;
-            }
-            return _context3.a(2);
-          case 1:
-            setInput("");
-            newMsgs = [].concat(_toConsumableArray(msgs), [{
-              role: "user",
-              content: q
-            }]);
-            setMsgs(newMsgs);
-            setBusy(true);
-            _context3.p = 2;
-            _context3.n = 3;
-            return fetch("https://trip-ai-proxy.yesnonoman.workers.dev", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                model: "claude-sonnet-4-20250514",
-                max_tokens: 800,
-                system: "\u4F60\u662F\u719F\u6089".concat(countryName, "\u7684\u5C08\u696D\u65C5\u904A\u9867\u554F\uFF0C\u670D\u52D9\u5C0D\u8C61\u662F\u5E364\u6B72\u548C2\u6B72\u5C0F\u5B69\u7684\u53F0\u7063\u5BB6\u5EAD\u3002\u7528\u7E41\u9AD4\u4E2D\u6587\u56DE\u7B54\uFF0C\u5167\u5BB9\u8981\u5BE6\u7528\u5177\u9AD4\uFF0C\u6BCF\u500B\u554F\u984C\u81F3\u5C11\u56DE\u7B545-8\u53E5\uFF0C\u5305\u542B\u5BE6\u969B\u4F8B\u5B50\u548C\u6CE8\u610F\u4E8B\u9805\u3002"),
-                messages: newMsgs
-              })
-            });
-          case 3:
-            res = _context3.v;
-            _context3.n = 4;
-            return res.json();
-          case 4:
-            data = _context3.v;
-            txt = (data.content || []).filter(function (b) {
-              return b.type === "text";
-            }).map(function (b) {
-              return b.text;
-            }).join("").trim();
-            finalMsgs = [].concat(_toConsumableArray(newMsgs), [{
-              role: "assistant",
-              content: txt
-            }]);
-            setMsgs(finalMsgs);
-            onMsgsChange && onMsgsChange(finalMsgs);
-            _context3.n = 6;
-            break;
-          case 5:
-            _context3.p = 5;
-            _t3 = _context3.v;
-            errMsgs = [].concat(_toConsumableArray(newMsgs), [{
-              role: "assistant",
-              content: "（回答失敗，請稍後再試）"
-            }]);
-            setMsgs(errMsgs);
-            onMsgsChange && onMsgsChange(errMsgs);
-          case 6:
-            setBusy(false);
-          case 7:
-            return _context3.a(2);
-        }
-      }, _callee3, null, [[2, 5]]);
-    }));
-    return function send() {
-      return _ref16.apply(this, arguments);
-    };
-  }();
+    text = _useState46[0],
+    setText = _useState46[1];
+  var save = function save() {
+    onChatChange && onChatChange(countryKey, text);
+  };
+  var TIPS = {
+    fr: "小費：帳單已含服務費，不需額外給。廁所：部分需付費€0.5，咖啡館可借用。治安：人多處防扒手，背包放前面。",
+    ch: "費用較高：一餐約CHF20-40。廁所：通常免費。治安：非常安全。山區天氣變化快，隨時備外套。",
+    it: "小費：不強制，可留零錢。廁所：部分收費€0.5-1。治安：羅馬/那不勒斯注意扒手。座位費coperto正常。"
+  };
   return /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12
@@ -3020,88 +2931,46 @@ function CountryChat(_ref15) {
       fontSize: 12,
       fontWeight: 700,
       color: color,
-      marginBottom: 8
+      marginBottom: 6
     }
-  }, "\uD83D\uDCAC \u554F\u7576\u5730\u6C11\u60C5"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCDD \u6CE8\u610F\u4E8B\u9805\u30FB\u6211\u7684\u7B46\u8A18"), /*#__PURE__*/React.createElement("div", {
     style: {
-      maxHeight: 200,
-      overflowY: "auto",
-      marginBottom: 8
-    }
-  }, msgs.length === 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#c9bda8",
-      padding: "8px 0"
-    }
-  }, "\u554F\u4EFB\u4F55\u554F\u984C\uFF01\u4F8B\u5982\uFF1A\u300C\u9910\u5EF3\u8981\u7D66\u5C0F\u8CBB\u55CE\uFF1F\u300D\u300C\u5E36\u5B30\u5152\u8ECA\u65B9\u4FBF\u55CE\uFF1F\u300D\u300C\u600E\u9EBC\u627E\u5EC1\u6240\uFF1F\u300D"), msgs.map(function (m, i) {
-    return /*#__PURE__*/React.createElement("div", {
-      key: i,
-      style: {
-        marginBottom: 8,
-        display: "flex",
-        justifyContent: m.role === "user" ? "flex-end" : "flex-start"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        maxWidth: "85%",
-        padding: "8px 12px",
-        borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-        background: m.role === "user" ? color : "#f3f3ee",
-        color: m.role === "user" ? "#fff" : "#2c2620",
-        fontSize: 13,
-        lineHeight: 1.6
-      }
-    }, m.content));
-  }), busy && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#c9bda8",
-      padding: "4px 8px"
-    }
-  }, "\u601D\u8003\u4E2D\u2026")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    value: input,
-    onChange: function onChange(e) {
-      return setInput(e.target.value);
-    },
-    onKeyDown: function onKeyDown(e) {
-      return e.key === "Enter" && send();
-    },
-    placeholder: "\u554F\u4EFB\u4F55\u95DC\u65BC\u7576\u5730\u7684\u4E8B\u2026",
-    style: {
-      flex: 1,
+      background: "#f8f5f0",
+      borderRadius: 8,
       padding: "8px 12px",
-      borderRadius: 20,
+      marginBottom: 8,
+      fontSize: 13,
+      color: "#2c2620",
+      lineHeight: 1.8
+    }
+  }, "\uD83D\uDCA1 ", TIPS[countryKey] || ""), /*#__PURE__*/React.createElement("textarea", {
+    value: text,
+    onChange: function onChange(e) {
+      return setText(e.target.value);
+    },
+    onBlur: save,
+    placeholder: "\u8A18\u4E0B\u81EA\u5DF1\u7684\u6CE8\u610F\u4E8B\u9805\u3001\u63D0\u9192\u2026\uFF08\u96E2\u958B\u8F38\u5165\u6846\u81EA\u52D5\u5132\u5B58\uFF09",
+    style: {
+      width: "100%",
+      minHeight: 70,
+      padding: "8px 10px",
+      borderRadius: 8,
       border: "1px solid #e0d7c8",
       fontSize: 13,
-      background: "#fff"
+      resize: "vertical",
+      background: "#fff",
+      fontFamily: "inherit",
+      outline: "none"
     }
-  }), /*#__PURE__*/React.createElement("button", {
-    className: "tp-btn",
-    onClick: send,
-    disabled: busy || !input.trim(),
-    style: {
-      padding: "8px 16px",
-      borderRadius: 20,
-      background: input.trim() ? color : "#e0d7c8",
-      color: "#fff",
-      fontSize: 13,
-      fontWeight: 600
-    }
-  }, "\u9001\u51FA")));
+  }));
 }
-function CountrySection(_ref17) {
-  var items = _ref17.items,
-    aiCountry = _ref17.aiCountry,
-    busyCountry = _ref17.busyCountry,
-    genCountry = _ref17.genCountry,
-    savedChats = _ref17.savedChats,
-    onChatChange = _ref17.onChatChange;
+function CountrySection(_ref16) {
+  var items = _ref16.items,
+    aiCountry = _ref16.aiCountry,
+    busyCountry = _ref16.busyCountry,
+    genCountry = _ref16.genCountry,
+    savedChats = _ref16.savedChats,
+    onChatChange = _ref16.onChatChange;
   return /*#__PURE__*/React.createElement("div", null, COUNTRY_CONFIG.map(function (c) {
     // Get tickets/attractions for this country
     var attractions = items.filter(function (it) {
@@ -3219,67 +3088,24 @@ function CountrySection(_ref17) {
       }),
       infodata: {},
       color: c.color
-    })), /*#__PURE__*/React.createElement("div", null, aiCountry[c.k] ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        fontWeight: 700,
-        color: c.color,
-        marginBottom: 6
-      }
-    }, "\uD83E\uDDED \u751F\u6D3B\u7FD2\u6163\u30FB\u98A8\u4FD7\u7981\u5FCC"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        lineHeight: 1.9,
-        whiteSpace: "pre-wrap"
-      }
-    }, aiCountry[c.k]), /*#__PURE__*/React.createElement("button", {
-      className: "tp-btn",
-      onClick: function onClick() {
-        return genCountry(c.k, true);
-      },
-      style: {
-        marginTop: 8,
-        fontSize: 11,
-        color: "#9a8a7a",
-        background: "none",
-        border: "none",
-        cursor: "pointer"
-      }
-    }, "\u91CD\u65B0\u751F\u6210")) : /*#__PURE__*/React.createElement("button", {
-      className: "tp-btn",
-      onClick: function onClick() {
-        return genCountry(c.k);
-      },
-      disabled: busyCountry[c.k],
-      style: {
-        padding: "8px 18px",
-        borderRadius: 20,
-        background: c.color,
-        color: "#fff",
-        fontSize: 13,
-        fontWeight: 600,
-        marginBottom: 8
-      }
-    }, busyCountry[c.k] ? "生成中…" : "🤖 生活習慣・風俗禁忌")), /*#__PURE__*/React.createElement(CountryChat, {
-      countryName: c.name,
+    })), /*#__PURE__*/React.createElement(CountryNotes, {
+      countryKey: c.k,
       color: c.color,
-      savedMsgs: savedChats && savedChats[c.k],
-      onMsgsChange: function onMsgsChange(msgs) {
-        return onChatChange && onChatChange(c.k, msgs);
-      }
+      savedChats: savedChats,
+      onChatChange: onChatChange
     })));
   }));
 }
-function AddPersonBtn(_ref18) {
-  var onAdd = _ref18.onAdd;
-  var _useState51 = useState(false),
-    _useState52 = _slicedToArray(_useState51, 2),
-    show = _useState52[0],
-    setShow = _useState52[1];
-  var _useState53 = useState(""),
-    _useState54 = _slicedToArray(_useState53, 2),
-    name = _useState54[0],
-    setName = _useState54[1];
+function AddPersonBtn(_ref17) {
+  var onAdd = _ref17.onAdd;
+  var _useState47 = useState(false),
+    _useState48 = _slicedToArray(_useState47, 2),
+    show = _useState48[0],
+    setShow = _useState48[1];
+  var _useState49 = useState(""),
+    _useState50 = _slicedToArray(_useState49, 2),
+    name = _useState50[0],
+    setName = _useState50[1];
   if (!show) return /*#__PURE__*/React.createElement("button", {
     className: "tp-btn",
     onClick: function onClick() {
@@ -3352,45 +3178,45 @@ function AddPersonBtn(_ref18) {
 }
 
 // ===== 行前準備 =====
-function PrepView(_ref19) {
-  var days = _ref19.days,
-    items = _ref19.items,
-    settings = _ref19.settings,
-    checklistData = _ref19.checklistData,
-    onChecklistChange = _ref19.onChecklistChange,
-    savedAiCountry = _ref19.savedAiCountry,
-    onAiCountryChange = _ref19.onAiCountryChange,
-    savedAiCloth = _ref19.savedAiCloth,
-    onAiClothChange = _ref19.onAiClothChange,
-    savedChats = _ref19.savedChats,
-    onChatChange = _ref19.onChatChange;
+function PrepView(_ref18) {
+  var days = _ref18.days,
+    items = _ref18.items,
+    settings = _ref18.settings,
+    checklistData = _ref18.checklistData,
+    onChecklistChange = _ref18.onChecklistChange,
+    savedAiCountry = _ref18.savedAiCountry,
+    onAiCountryChange = _ref18.onAiCountryChange,
+    savedAiCloth = _ref18.savedAiCloth,
+    onAiClothChange = _ref18.onAiClothChange,
+    savedChats = _ref18.savedChats,
+    onChatChange = _ref18.onChatChange;
   var updateChecklist = function updateChecklist(newCL) {
     onChecklistChange(newCL);
   };
-  var _useState55 = useState({}),
+  var _useState51 = useState({}),
+    _useState52 = _slicedToArray(_useState51, 2),
+    openCats = _useState52[0],
+    setOpenCats = _useState52[1];
+  var _useState53 = useState({}),
+    _useState54 = _slicedToArray(_useState53, 2),
+    newItems = _useState54[0],
+    setNewItems = _useState54[1];
+  var _useState55 = useState("checklist"),
     _useState56 = _slicedToArray(_useState55, 2),
-    openCats = _useState56[0],
-    setOpenCats = _useState56[1];
-  var _useState57 = useState({}),
+    activeSection = _useState56[0],
+    setActiveSection = _useState56[1];
+  var _useState57 = useState("main"),
     _useState58 = _slicedToArray(_useState57, 2),
-    newItems = _useState58[0],
-    setNewItems = _useState58[1];
-  var _useState59 = useState("checklist"),
+    activePerson = _useState58[0],
+    setActivePerson = _useState58[1];
+  var _useState59 = useState(""),
     _useState60 = _slicedToArray(_useState59, 2),
-    activeSection = _useState60[0],
-    setActiveSection = _useState60[1];
-  var _useState61 = useState("main"),
+    newCatName = _useState60[0],
+    setNewCatName = _useState60[1];
+  var _useState61 = useState(null),
     _useState62 = _slicedToArray(_useState61, 2),
-    activePerson = _useState62[0],
-    setActivePerson = _useState62[1];
-  var _useState63 = useState(""),
-    _useState64 = _slicedToArray(_useState63, 2),
-    newCatName = _useState64[0],
-    setNewCatName = _useState64[1];
-  var _useState65 = useState(null),
-    _useState66 = _slicedToArray(_useState65, 2),
-    editingCat = _useState66[0],
-    setEditingCat = _useState66[1];
+    editingCat = _useState62[0],
+    setEditingCat = _useState62[1];
   var aiCountry = savedAiCountry || {};
   var setAiCountry = function setAiCountry(updater) {
     var newVal = typeof updater === "function" ? updater(aiCountry) : updater;
@@ -3402,14 +3228,14 @@ function PrepView(_ref19) {
   var setAiCloth = function setAiCloth(v) {
     onAiClothChange && onAiClothChange(typeof v === "function" ? v(aiCloth) : v);
   };
-  var _useState67 = useState(false),
-    _useState68 = _slicedToArray(_useState67, 2),
-    busyCloth = _useState68[0],
-    setBusyCloth = _useState68[1];
-  var _useState69 = useState({}),
-    _useState70 = _slicedToArray(_useState69, 2),
-    busyCountry = _useState70[0],
-    setBusyCountry = _useState70[1];
+  var _useState63 = useState(false),
+    _useState64 = _slicedToArray(_useState63, 2),
+    busyCloth = _useState64[0],
+    setBusyCloth = _useState64[1];
+  var _useState65 = useState({}),
+    _useState66 = _slicedToArray(_useState65, 2),
+    busyCountry = _useState66[0],
+    setBusyCountry = _useState66[1];
   var getPersonCL = function getPersonCL() {
     return checklistData && checklistData[activePerson] || {};
   };
@@ -3456,10 +3282,10 @@ function PrepView(_ref19) {
     }
     var pcl = getPersonCL();
     var reordered = {};
-    Object.entries(pcl).forEach(function (_ref20) {
-      var _ref21 = _slicedToArray(_ref20, 2),
-        k = _ref21[0],
-        v = _ref21[1];
+    Object.entries(pcl).forEach(function (_ref19) {
+      var _ref20 = _slicedToArray(_ref19, 2),
+        k = _ref20[0],
+        v = _ref20[1];
       reordered[k === oldKey ? newKey : k] = v;
     });
     setPersonCL(reordered);
@@ -3470,10 +3296,10 @@ function PrepView(_ref19) {
     // Copy structure from main but reset checked
     var mainPCL = checklistData["main"] || {};
     var newPCL = {};
-    Object.entries(mainPCL).forEach(function (_ref22) {
-      var _ref23 = _slicedToArray(_ref22, 2),
-        cat = _ref23[0],
-        items = _ref23[1];
+    Object.entries(mainPCL).forEach(function (_ref21) {
+      var _ref22 = _slicedToArray(_ref21, 2),
+        cat = _ref22[0],
+        items = _ref22[1];
       newPCL[cat] = items.map(function (it) {
         return _objectSpread(_objectSpread({}, it), {}, {
           checked: false
@@ -3504,14 +3330,14 @@ function PrepView(_ref19) {
     flex: 1
   };
   var genClothing = /*#__PURE__*/function () {
-    var _ref24 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
-      var res, data, txt, _t4;
-      return _regenerator().w(function (_context4) {
-        while (1) switch (_context4.p = _context4.n) {
+    var _ref23 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
+      var res, data, txt, _t3;
+      return _regenerator().w(function (_context3) {
+        while (1) switch (_context3.p = _context3.n) {
           case 0:
             setBusyCloth(true);
-            _context4.p = 1;
-            _context4.n = 2;
+            _context3.p = 1;
+            _context3.n = 2;
             return fetch("https://trip-ai-proxy.yesnonoman.workers.dev", {
               method: "POST",
               headers: {
@@ -3531,39 +3357,39 @@ function PrepView(_ref19) {
               })
             });
           case 2:
-            res = _context4.v;
-            _context4.n = 3;
+            res = _context3.v;
+            _context3.n = 3;
             return res.json();
           case 3:
-            data = _context4.v;
+            data = _context3.v;
             txt = (data.content || []).filter(function (b) {
               return b.type === "text";
             }).map(function (b) {
               return b.text;
             }).join("\n").trim();
             setAiCloth(txt);
-            _context4.n = 5;
+            _context3.n = 5;
             break;
           case 4:
-            _context4.p = 4;
-            _t4 = _context4.v;
+            _context3.p = 4;
+            _t3 = _context3.v;
             setAiCloth("（產生失敗，請稍後再試）");
           case 5:
             setBusyCloth(false);
           case 6:
-            return _context4.a(2);
+            return _context3.a(2);
         }
-      }, _callee4, null, [[1, 4]]);
+      }, _callee3, null, [[1, 4]]);
     }));
     return function genClothing() {
-      return _ref24.apply(this, arguments);
+      return _ref23.apply(this, arguments);
     };
   }();
   var genCountry = /*#__PURE__*/function () {
-    var _ref25 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(country) {
-      var names, res, data, txt, _t5;
-      return _regenerator().w(function (_context5) {
-        while (1) switch (_context5.p = _context5.n) {
+    var _ref24 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(country) {
+      var names, res, data, txt, _t4;
+      return _regenerator().w(function (_context4) {
+        while (1) switch (_context4.p = _context4.n) {
           case 0:
             setBusyCountry(function (p) {
               return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, country, true));
@@ -3573,8 +3399,8 @@ function PrepView(_ref19) {
               ch: "瑞士（琉森、少女峰、策馬特）",
               it: "義大利（那不勒斯、羅馬、佛羅倫斯、威尼斯）"
             };
-            _context5.p = 1;
-            _context5.n = 2;
+            _context4.p = 1;
+            _context4.n = 2;
             return fetch("https://trip-ai-proxy.yesnonoman.workers.dev", {
               method: "POST",
               headers: {
@@ -3590,11 +3416,11 @@ function PrepView(_ref19) {
               })
             });
           case 2:
-            res = _context5.v;
-            _context5.n = 3;
+            res = _context4.v;
+            _context4.n = 3;
             return res.json();
           case 3:
-            data = _context5.v;
+            data = _context4.v;
             txt = (data.content || []).filter(function (b) {
               return b.type === "text";
             }).map(function (b) {
@@ -3603,11 +3429,11 @@ function PrepView(_ref19) {
             setAiCountry(function (p) {
               return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, country, txt));
             });
-            _context5.n = 5;
+            _context4.n = 5;
             break;
           case 4:
-            _context5.p = 4;
-            _t5 = _context5.v;
+            _context4.p = 4;
+            _t4 = _context4.v;
             setAiCountry(function (p) {
               return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, country, "（產生失敗，請稍後再試）"));
             });
@@ -3616,12 +3442,12 @@ function PrepView(_ref19) {
               return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, country, false));
             });
           case 6:
-            return _context5.a(2);
+            return _context4.a(2);
         }
-      }, _callee5, null, [[1, 4]]);
+      }, _callee4, null, [[1, 4]]);
     }));
     return function genCountry(_x3) {
-      return _ref25.apply(this, arguments);
+      return _ref24.apply(this, arguments);
     };
   }();
   var SECTIONS = [{
@@ -4092,62 +3918,53 @@ function PrepView(_ref19) {
       fontWeight: 700,
       marginBottom: 4
     }
-  }, "AI \u7A7F\u8457\u5EFA\u8B70"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: PALETTE.inkSoft
-    }
-  }, "\u6839\u64DA 6\u6708\u6B50\u6D32\u5929\u6C23\uFF0B\u5C71\u5CB3\u884C\u7A0B\uFF0CAI \u5E6B\u4F60\u6574\u7406\u8863\u7269\u6E05\u55AE")), !aiCloth ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      padding: "30px 0"
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "tp-btn",
-    onClick: genClothing,
-    disabled: busyCloth,
-    style: {
-      padding: "12px 28px",
-      borderRadius: 20,
-      background: PALETTE.ink,
-      color: "#fbf8f1",
-      fontSize: 15,
-      fontWeight: 600
-    }
-  }, busyCloth ? "🤖 AI 分析中…" : "🤖 一鍵生成穿著建議"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDC54 \u7A7F\u8457\u5EFA\u8B70"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: PALETTE.inkSoft,
-      marginTop: 10
+      marginBottom: 12
     }
-  }, "\u8003\u91CF\u6CD5\u745E\u7FA9\u6C23\u5019\u3001\u5C11\u5973\u5CF0/\u76AE\u62C9\u5716\u65AF\u5C71\u5CB3\u884C\u7A0B\u3001\u5E36\u5C0F\u5B69\u9700\u6C42")) : /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, "\u6839\u64DA 6\u6708\u4EFD\u6B50\u6D32\u6C23\u5019\u6574\u7406\u7684\u5EFA\u8B70\uFF0C\u53EF\u81EA\u884C\u4FEE\u6539"), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: PALETTE.paper,
+      fontSize: 14,
+      lineHeight: 2.0,
+      color: PALETTE.ink
+    }
+  }, /*#__PURE__*/React.createElement("b", null, "\u6CD5\u570B\uFF086/3\u20136/13\uFF09\uFF1A"), "\u5DF4\u9ECE\u521D\u590F\u7D04 18\u201325\xB0C\uFF0C\u65E9\u665A\u6DBC\u3002\u8584\u5916\u5957\u5FC5\u5099\uFF0C\u5076\u6709\u9663\u96E8\u5E36\u647A\u758A\u5098\u3002\u5C3C\u65AF\u8F03\u71B1\u7D04 22\u201328\xB0C\uFF0C\u53EF\u7A7F\u77ED\u8896\u3002", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("b", null, "\u745E\u58EB\uFF086/13\u20136/24\uFF09\uFF1A"), "\u5E73\u5730\u7D04 15\u201322\xB0C\uFF0C\u5C71\u5340\u9A5F\u964D\u3002\u5C11\u5973\u5CF0\u9802 -5\xB0C \u4EE5\u4E0B\uFF0C\u7FBD\u7D68\u8863\uFF0B\u4FDD\u6696\u5E3D\u624B\u5957\u5FC5\u5E36\uFF01\u7409\u68EE\u7B56\u99AC\u7279\u8584\u5916\u5957\u3002", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("b", null, "\u7FA9\u5927\u5229\uFF086/24\u20137/10\uFF09\uFF1A"), "\u90A3\u4E0D\u52D2\u65AF\u7F85\u99AC\u7D04 25\u201332\xB0C \u708E\u71B1\uFF0C\u9632\u66EC\u4E73\u5FC5\u5099\u3002\u5A01\u5C3C\u65AF\u4F5B\u7F85\u502B\u65AF\u7D04 24\u201330\xB0C\u3002\u591A\u6D1B\u7C73\u63D0\u5C71\u5340\u7D04 15\u201320\xB0C \u6DBC\u723D\u3002", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("b", null, "\u5C0F\u5B69\uFF1A"), "\u4FCD\u9821\u82AE\u6A02\u5404\u5E36 5 \u5957\u66FF\u63DB\u8863\u7269\uFF0C\u745E\u58EB\u6BB5\u52A0\u4E00\u4EF6\u4FDD\u6696\u5916\u5957\uFF0C\u7FA9\u5927\u5229\u6BB5\u5099\u9632\u66EC\u8863\u3002")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#f0f7f4",
       borderRadius: 12,
-      padding: "16px",
-      border: "1px solid ".concat(PALETTE.line),
-      whiteSpace: "pre-wrap",
-      fontSize: 13,
-      lineHeight: 1.9
+      padding: "14px 16px",
+      border: "1px solid #b8d8cc"
     }
-  }, aiCloth), /*#__PURE__*/React.createElement("button", {
-    className: "tp-btn",
-    onClick: function onClick() {
-      return setAiCloth("");
-    },
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 12,
-      padding: "8px 16px",
-      borderRadius: 20,
-      background: PALETTE.line,
       fontSize: 13,
+      fontWeight: 700,
+      color: "#3a7a5a",
+      marginBottom: 6
+    }
+  }, "\uD83D\uDCA1 \u9700\u8981\u66F4\u8A73\u7D30\u7684\u7A7F\u642D\u5EFA\u8B70\uFF1F"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: PALETTE.ink,
+      lineHeight: 1.8
+    }
+  }, "\u628A\u9019\u6BB5\u8A71\u8CBC\u5230 Claude \u5C0D\u8A71\uFF1A", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
+    style: {
+      background: "#fff",
+      padding: "6px 10px",
+      borderRadius: 8,
+      display: "block",
+      marginTop: 6,
+      fontSize: 12,
       color: PALETTE.inkSoft
     }
-  }, "\u91CD\u65B0\u751F\u6210"))));
+  }, "\u300C\u6211\u662F\u5E364\u6B72\u548C2\u6B72\u5C0F\u5B69\u7684\u53F0\u7063\u5BB6\u5EAD\uFF0C6\u6708\u521D\u52307\u6708\u521D\u53BB\u6CD5\u570B\u2192\u745E\u58EB\u2192\u7FA9\u5927\u522938\u5929\uFF0C\u884C\u7A0B\u5305\u542B\u5C11\u5973\u5CF03454m\u3001\u76AE\u62C9\u5716\u65AF\u5C71\u3001\u7B56\u99AC\u7279\uFF0C\u5E6B\u6211\u6574\u7406\u8A73\u7D30\u6253\u5305\u8863\u7269\u6E05\u55AE\u300D")))));
 }
-function AddTravelerRow(_ref26) {
-  var gk = _ref26.gk,
-    onAdd = _ref26.onAdd;
+function AddTravelerRow(_ref25) {
+  var gk = _ref25.gk,
+    onAdd = _ref25.onAdd;
   var _React$useState = React.useState(""),
     _React$useState2 = _slicedToArray(_React$useState, 2),
     zh = _React$useState2[0],
@@ -4223,13 +4040,13 @@ function AddTravelerRow(_ref26) {
 }
 
 // ===== 設定 =====
-function Settings(_ref27) {
-  var settings = _ref27.settings,
-    onSave = _ref27.onSave;
-  var _useState71 = useState(JSON.parse(JSON.stringify(settings))),
-    _useState72 = _slicedToArray(_useState71, 2),
-    s = _useState72[0],
-    setS = _useState72[1];
+function Settings(_ref26) {
+  var settings = _ref26.settings,
+    onSave = _ref26.onSave;
+  var _useState67 = useState(JSON.parse(JSON.stringify(settings))),
+    _useState68 = _slicedToArray(_useState67, 2),
+    s = _useState68[0],
+    setS = _useState68[1];
   var inp = {
     width: "100%",
     padding: "8px 10px",
@@ -4575,14 +4392,14 @@ function Settings(_ref27) {
 }
 
 // ===== Modals =====
-function ItemEditor(_ref28) {
-  var item = _ref28.item,
-    settings = _ref28.settings,
-    _onSave = _ref28.onSave,
-    _onDelete = _ref28.onDelete,
-    onClose = _ref28.onClose,
-    travelers = _ref28.travelers;
-  var _useState73 = useState({
+function ItemEditor(_ref27) {
+  var item = _ref27.item,
+    settings = _ref27.settings,
+    _onSave = _ref27.onSave,
+    _onDelete = _ref27.onDelete,
+    onClose = _ref27.onClose,
+    travelers = _ref27.travelers;
+  var _useState69 = useState({
       date: item.date || "2026-06-13",
       country: item.country || "ch",
       type: item.type || "transport",
@@ -4602,9 +4419,9 @@ function ItemEditor(_ref28) {
       checkoutDate: item.checkoutDate || "",
       id: item.id
     }),
-    _useState74 = _slicedToArray(_useState73, 2),
-    f = _useState74[0],
-    setF = _useState74[1];
+    _useState70 = _slicedToArray(_useState69, 2),
+    f = _useState70[0],
+    setF = _useState70[1];
   var set = function set(k, v) {
     return setF(function (p) {
       return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, k, v));
@@ -4677,10 +4494,10 @@ function ItemEditor(_ref28) {
       return set("country", e.target.value);
     },
     style: inp
-  }, Object.entries(COUNTRY).map(function (_ref29) {
-    var _ref30 = _slicedToArray(_ref29, 2),
-      k = _ref30[0],
-      v = _ref30[1];
+  }, Object.entries(COUNTRY).map(function (_ref28) {
+    var _ref29 = _slicedToArray(_ref28, 2),
+      k = _ref29[0],
+      v = _ref29[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
@@ -4697,10 +4514,10 @@ function ItemEditor(_ref28) {
       return set("type", e.target.value);
     },
     style: inp
-  }, Object.entries(TYPE).map(function (_ref31) {
-    var _ref32 = _slicedToArray(_ref31, 2),
-      k = _ref32[0],
-      v = _ref32[1];
+  }, Object.entries(TYPE).map(function (_ref30) {
+    var _ref31 = _slicedToArray(_ref30, 2),
+      k = _ref31[0],
+      v = _ref31[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
@@ -4775,10 +4592,10 @@ function ItemEditor(_ref28) {
       return set("status", e.target.value);
     },
     style: inp
-  }, Object.entries(STATUS).map(function (_ref33) {
-    var _ref34 = _slicedToArray(_ref33, 2),
-      k = _ref34[0],
-      v = _ref34[1];
+  }, Object.entries(STATUS).map(function (_ref32) {
+    var _ref33 = _slicedToArray(_ref32, 2),
+      k = _ref33[0],
+      v = _ref33[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
@@ -5040,18 +4857,18 @@ function ItemEditor(_ref28) {
 }
 
 // ===== 日標題編輯 =====
-function DayHeaderEditor(_ref35) {
-  var day = _ref35.day,
-    onSave = _ref35.onSave,
-    onClose = _ref35.onClose;
-  var _useState75 = useState(day.title || ""),
-    _useState76 = _slicedToArray(_useState75, 2),
-    title = _useState76[0],
-    setTitle = _useState76[1];
-  var _useState77 = useState(day.country || "fr"),
-    _useState78 = _slicedToArray(_useState77, 2),
-    country = _useState78[0],
-    setCountry = _useState78[1];
+function DayHeaderEditor(_ref34) {
+  var day = _ref34.day,
+    onSave = _ref34.onSave,
+    onClose = _ref34.onClose;
+  var _useState71 = useState(day.title || ""),
+    _useState72 = _slicedToArray(_useState71, 2),
+    title = _useState72[0],
+    setTitle = _useState72[1];
+  var _useState73 = useState(day.country || "fr"),
+    _useState74 = _slicedToArray(_useState73, 2),
+    country = _useState74[0],
+    setCountry = _useState74[1];
   var inp = {
     width: "100%",
     padding: "9px 11px",
@@ -5077,10 +4894,10 @@ function DayHeaderEditor(_ref35) {
       return setCountry(e.target.value);
     },
     style: inp
-  }, Object.entries(COUNTRY).map(function (_ref36) {
-    var _ref37 = _slicedToArray(_ref36, 2),
-      k = _ref37[0],
-      v = _ref37[1];
+  }, Object.entries(COUNTRY).map(function (_ref35) {
+    var _ref36 = _slicedToArray(_ref35, 2),
+      k = _ref36[0],
+      v = _ref36[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
@@ -5129,16 +4946,16 @@ function DayHeaderEditor(_ref35) {
     }
   }, "\u53D6\u6D88")));
 }
-function AddDaysModal(_ref38) {
-  var onSave = _ref38.onSave,
-    onClose = _ref38.onClose;
-  var _useState79 = useState([{
+function AddDaysModal(_ref37) {
+  var onSave = _ref37.onSave,
+    onClose = _ref37.onClose;
+  var _useState75 = useState([{
       date: "",
       title: ""
     }]),
-    _useState80 = _slicedToArray(_useState79, 2),
-    rows = _useState80[0],
-    setRows = _useState80[1];
+    _useState76 = _slicedToArray(_useState75, 2),
+    rows = _useState76[0],
+    setRows = _useState76[1];
   var inp = {
     width: "100%",
     padding: "9px 11px",
@@ -5237,28 +5054,28 @@ function AddDaysModal(_ref38) {
     }
   }, "\u53D6\u6D88")));
 }
-function LocInfoModal(_ref39) {
-  var loc = _ref39.loc,
-    info = _ref39.info,
-    onAddLink = _ref39.onAddLink,
-    onDelLink = _ref39.onDelLink,
-    onUpdate = _ref39.onUpdate,
-    onClose = _ref39.onClose;
-  var _useState81 = useState({
+function LocInfoModal(_ref38) {
+  var loc = _ref38.loc,
+    info = _ref38.info,
+    onAddLink = _ref38.onAddLink,
+    onDelLink = _ref38.onDelLink,
+    onUpdate = _ref38.onUpdate,
+    onClose = _ref38.onClose;
+  var _useState77 = useState({
       title: "",
       url: ""
     }),
+    _useState78 = _slicedToArray(_useState77, 2),
+    nl = _useState78[0],
+    setNl = _useState78[1]; // 新連結
+  var _useState79 = useState(info.note || ""),
+    _useState80 = _slicedToArray(_useState79, 2),
+    note = _useState80[0],
+    setNote = _useState80[1];
+  var _useState81 = useState(false),
     _useState82 = _slicedToArray(_useState81, 2),
-    nl = _useState82[0],
-    setNl = _useState82[1]; // 新連結
-  var _useState83 = useState(info.note || ""),
-    _useState84 = _slicedToArray(_useState83, 2),
-    note = _useState84[0],
-    setNote = _useState84[1];
-  var _useState85 = useState(false),
-    _useState86 = _slicedToArray(_useState85, 2),
-    busy = _useState86[0],
-    setBusy = _useState86[1];
+    busy = _useState82[0],
+    setBusy = _useState82[1];
   var inp = {
     width: "100%",
     padding: "9px 11px",
@@ -5291,10 +5108,10 @@ function LocInfoModal(_ref39) {
     });
   };
   var genSummary = /*#__PURE__*/function () {
-    var _ref40 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
-      var linkList, hasUrls, res, data, txt, _t6;
-      return _regenerator().w(function (_context6) {
-        while (1) switch (_context6.p = _context6.n) {
+    var _ref39 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
+      var linkList, hasUrls, res, data, txt, _t5;
+      return _regenerator().w(function (_context5) {
+        while (1) switch (_context5.p = _context5.n) {
           case 0:
             setBusy(true);
             linkList = info.links.map(function (l, i) {
@@ -5303,8 +5120,8 @@ function LocInfoModal(_ref39) {
             hasUrls = info.links.some(function (l) {
               return l.url;
             });
-            _context6.p = 1;
-            _context6.n = 2;
+            _context5.p = 1;
+            _context5.n = 2;
             return fetch("https://trip-ai-proxy.yesnonoman.workers.dev", {
               method: "POST",
               headers: {
@@ -5324,11 +5141,11 @@ function LocInfoModal(_ref39) {
               })
             });
           case 2:
-            res = _context6.v;
-            _context6.n = 3;
+            res = _context5.v;
+            _context5.n = 3;
             return res.json();
           case 3:
-            data = _context6.v;
+            data = _context5.v;
             txt = (data.content || []).filter(function (b) {
               return b.type === "text";
             }).map(function (b) {
@@ -5337,23 +5154,23 @@ function LocInfoModal(_ref39) {
             onUpdate(loc.id, {
               summary: txt
             });
-            _context6.n = 5;
+            _context5.n = 5;
             break;
           case 4:
-            _context6.p = 4;
-            _t6 = _context6.v;
+            _context5.p = 4;
+            _t5 = _context5.v;
             onUpdate(loc.id, {
               summary: "（速讀產生失敗，請稍後再試）"
             });
           case 5:
             setBusy(false);
           case 6:
-            return _context6.a(2);
+            return _context5.a(2);
         }
-      }, _callee6, null, [[1, 4]]);
+      }, _callee5, null, [[1, 4]]);
     }));
     return function genSummary() {
-      return _ref40.apply(this, arguments);
+      return _ref39.apply(this, arguments);
     };
   }();
   return /*#__PURE__*/React.createElement(Modal, {
@@ -5495,61 +5312,17 @@ function LocInfoModal(_ref39) {
     }
   }, "\u96E2\u958B\u8F38\u5165\u6846\u81EA\u52D5\u5132\u5B58")), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "#f3eee2",
-      borderRadius: 10,
-      padding: "12px 14px",
-      border: "1px solid ".concat(PALETTE.gold, "33")
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: PALETTE.gold
-    }
-  }, "\u26A1 \u6B64\u5730\u9EDE AI \u901F\u8B80"), /*#__PURE__*/React.createElement("button", {
-    className: "tp-btn",
-    disabled: busy || !info.links.length && !note,
-    onClick: genSummary,
-    style: {
-      fontSize: 12,
-      padding: "5px 12px",
-      borderRadius: 20,
-      background: info.links.length || note ? PALETTE.gold : PALETTE.line,
-      color: "#fff",
-      fontWeight: 600
-    }
-  }, busy ? "產生中…" : info.summary ? "重新產生" : "產生速讀")), info.summary ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: PALETTE.ink,
-      marginTop: 8,
-      lineHeight: 1.7
-    }
-  }, info.summary) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
+      fontSize: 11,
       color: PALETTE.inkSoft,
-      marginTop: 6
+      padding: "8px 0",
+      lineHeight: 1.6
     }
-  }, info.links.length || note ? "讀完連結標題＋你的筆記後產出速讀" : "先加連結或寫筆記"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: PALETTE.inkSoft,
-      marginTop: 8,
-      lineHeight: 1.5
-    }
-  }, "\u203B AI \u901F\u8B80\u6703\u76F4\u63A5\u8A2A\u554F\u9023\u7D50\u5167\u5BB9\uFF08\u9700\u7DB2\u8DEF\uFF09\u3002\u4E5F\u53EF\u628A\u6587\u7AE0\u5168\u6587\u8CBC\u9032\u7B46\u8A18\uFF0C\u901F\u8B80\u6703\u66F4\u7CBE\u6E96\u3002")));
+  }, "\uD83D\uDCA1 \u628A\u91CD\u8981\u8CC7\u8A0A\u8CBC\u5230\u300C\u6211\u7684\u7B46\u8A18\u300D\uFF0C\u6216\u628A\u9023\u7D50\u4E1F\u7D66 Claude \u5C0D\u8A71\u5E6B\u4F60\u6574\u7406\u91CD\u9EDE\u5F8C\u8CBC\u56DE\u4F86\u3002"));
 }
-function Modal(_ref41) {
-  var children = _ref41.children,
-    title = _ref41.title,
-    onClose = _ref41.onClose;
+function Modal(_ref40) {
+  var children = _ref40.children,
+    title = _ref40.title,
+    onClose = _ref40.onClose;
   return /*#__PURE__*/React.createElement("div", {
     onClick: onClose,
     style: {
@@ -5584,8 +5357,8 @@ function Modal(_ref41) {
     }
   }, title), children));
 }
-function Row(_ref42) {
-  var children = _ref42.children;
+function Row(_ref41) {
+  var children = _ref41.children;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -5594,11 +5367,11 @@ function Row(_ref42) {
     }
   }, children);
 }
-function EditorButtons(_ref43) {
-  var hasId = _ref43.hasId,
-    onSave = _ref43.onSave,
-    onDelete = _ref43.onDelete,
-    onClose = _ref43.onClose;
+function EditorButtons(_ref42) {
+  var hasId = _ref42.hasId,
+    onSave = _ref42.onSave,
+    onDelete = _ref42.onDelete,
+    onClose = _ref42.onClose;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
