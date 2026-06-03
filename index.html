@@ -5199,11 +5199,11 @@ function LocInfoModal(_ref40) {
         while (1) switch (_context5.p = _context5.n) {
           case 0:
             setBusy(true);
-            linkList = info.links.map(function (l, i) {
+            linkList = info.links.filter(function (l) { return !/^data:/.test(l.url || ""); }).map(function (l, i) {
               return "".concat(i + 1, ". ").concat(l.title).concat(l.url ? " (" + l.url + ")" : "");
             }).join("\n") || "（無連結）";
             hasUrls = info.links.some(function (l) {
-              return l.url;
+              return l.url && !/^data:/.test(l.url);
             });
             _context5.p = 1;
             _context5.n = 2;
@@ -5286,12 +5286,14 @@ function LocInfoModal(_ref40) {
     }
   }, "\u9084\u6C92\u6709\u9023\u7D50\uFF0C\u5F9E\u4E0B\u65B9\u52A0\u5165\u7B2C\u4E00\u500B\u3002"), info.links.map(function (l) {
     var embed = ytEmbed(l.url);
+    var isImg = /\.(png|jpe?g|gif|webp|bmp|svg)(\?|#|$)/i.test(l.url || "") || /^data:image\//.test(l.url || "");
     return /*#__PURE__*/React.createElement("div", {
       key: l.id,
       style: {
         display: "flex",
         alignItems: "center",
         gap: 8,
+        flexWrap: "wrap",
         background: "#f7f2ea",
         borderRadius: 10,
         padding: "9px 11px",
@@ -5325,7 +5327,7 @@ function LocInfoModal(_ref40) {
         color: PALETTE.red,
         whiteSpace: "nowrap"
       }
-    }, "\u522A"));
+    }, "\u522A"), isImg && /*#__PURE__*/React.createElement("img", { src: l.url, alt: l.title, style: { width: "100%", borderRadius: 8, marginTop: 6, display: "block", cursor: "pointer" }, onClick: function () { window.open(l.url, "_blank"); } }));
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
@@ -5386,7 +5388,7 @@ function LocInfoModal(_ref40) {
     placeholder: "\u81EA\u5DF1\u7684\u60F3\u6CD5\u3001\u63D0\u9192\uFF08\u4F8B\uFF1A\u8A18\u5F97\u5E36\u5B78\u751F\u8B49\uFF09\u3002\u4E5F\u53EF\u628A\u6587\u7AE0\u5167\u6587\u8CBC\u9019\u88E1\uFF0CAI \u901F\u8B80\u6703\u66F4\u6E96\u3002",
     style: _objectSpread(_objectSpread({}, inp), {}, {
       marginTop: 0,
-      minHeight: 70,
+      minHeight: 220,
       resize: "vertical"
     })
   }), /*#__PURE__*/React.createElement("div", {
@@ -5395,7 +5397,7 @@ function LocInfoModal(_ref40) {
       color: PALETTE.inkSoft,
       marginTop: 4
     }
-  }, "\u96E2\u958B\u8F38\u5165\u6846\u81EA\u52D5\u5132\u5B58")), /*#__PURE__*/React.createElement("div", {
+  }, "\u96E2\u958B\u8F38\u5165\u6846\u81EA\u52D5\u5132\u5B58")), /*#__PURE__*/React.createElement("div", { style: { marginBottom: 18 } }, /*#__PURE__*/React.createElement("div", { style: { fontSize: 13, fontWeight: 700, marginBottom: 8 } }, "📷 照片（資訊圖）"), (info.images && info.images.length) ? /*#__PURE__*/React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 } }, info.images.map(function (src, idx) { return /*#__PURE__*/React.createElement("div", { key: idx, style: { position: "relative", width: "100%" } }, /*#__PURE__*/React.createElement("img", { src: src, alt: "photo", style: { width: "100%", borderRadius: 8, display: "block", cursor: "pointer" }, onClick: function () { window.open(src, "_blank"); } }), /*#__PURE__*/React.createElement("span", { className: "tp-btn", onClick: function () { var arr = (info.images || []).filter(function (_x, i) { return i !== idx; }); onUpdate(loc.id, { images: arr }); }, style: { position: "absolute", top: 6, right: 6, background: "rgba(40,33,25,.7)", color: "#fff", fontSize: 11, padding: "2px 8px", borderRadius: 6 } }, "刪")); }) ) : null, /*#__PURE__*/React.createElement("input", { type: "file", accept: "image/*", style: { width: "100%", fontSize: 12 }, onChange: function (e) { var file = e.target.files && e.target.files[0]; if (!file) return; var fr = new FileReader(); fr.onload = function (ev) { var im = new Image(); im.onload = function () { var max = 1200, w = im.width, h = im.height; if (w > max || h > max) { if (w > h) { h = Math.round(h * max / w); w = max; } else { w = Math.round(w * max / h); h = max; } } var cv = document.createElement("canvas"); cv.width = w; cv.height = h; cv.getContext("2d").drawImage(im, 0, 0, w, h); var arr = (info.images || []).concat([cv.toDataURL("image/jpeg", 0.6)]); onUpdate(loc.id, { images: arr }); }; im.src = ev.target.result; }; fr.readAsDataURL(file); e.target.value = ""; } }), /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, color: PALETTE.inkSoft, marginTop: 4 } }, "拍照或選圖，自動壓縮同步給家人。點圖開大圖。")), /*#__PURE__*/React.createElement("div", { style: { marginBottom: 18 } }, /*#__PURE__*/React.createElement("button", { className: "tp-btn", onClick: genSummary, disabled: busy, style: { width: "100%", padding: 10, borderRadius: 8, background: busy ? PALETTE.line : PALETTE.ink, color: busy ? PALETTE.ink : "#fbf8f1", fontSize: 13, fontWeight: 600 } }, busy ? "AI 速讀產生中…" : "🤖 產生 AI 速讀"), info.summary ? /*#__PURE__*/React.createElement("div", { style: { fontSize: 13, color: PALETTE.ink, marginTop: 8, padding: "10px 12px", background: "#f3eee2", borderRadius: 8, lineHeight: 1.7, whiteSpace: "pre-wrap" } }, "⚡ ", info.summary) : null), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: PALETTE.inkSoft,
