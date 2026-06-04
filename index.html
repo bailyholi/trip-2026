@@ -4511,6 +4511,7 @@ function ItemEditor(_ref29) {
       paidAmount: item.paidAmount || 0,
       ref: item.ref || "",
       qr: item.qr || "",
+      links: item.links || [],
       note: item.note || "",
       splitMode: item.splitMode || "none",
       payer: item.payer || "kid",
@@ -4888,7 +4889,7 @@ function ItemEditor(_ref29) {
     return f.travelerIds.includes(t.id);
   }).map(function (t) {
     return t.nameZh;
-  }).join("、"))), /*#__PURE__*/React.createElement("div", {
+  }).join("、"))), /*#__PURE__*/React.createElement("div", { style: { marginTop: 10 } }, /*#__PURE__*/React.createElement("div", { style: lbl }, "🔗 連結存放（參考商家）"), (f.links || []).length ? /*#__PURE__*/React.createElement("div", { style: { marginBottom: 6 } }, (f.links || []).map(function (l) { return /*#__PURE__*/React.createElement("div", { key: l.id, style: { display: "flex", alignItems: "center", gap: 8, background: "#f7f2ea", borderRadius: 8, padding: "7px 10px", marginBottom: 5 } }, /*#__PURE__*/React.createElement("a", { href: l.url, target: "_blank", rel: "noreferrer", style: { flex: 1, minWidth: 0, fontSize: 13, fontWeight: 500, color: PALETTE.gold, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, l.title || l.url), /*#__PURE__*/React.createElement("span", { className: "tp-btn", onClick: function () { setF(function (p) { return Object.assign({}, p, { links: (p.links || []).filter(function (x) { return x.id !== l.id; }) }); }); }, style: { fontSize: 11, color: PALETTE.red, whiteSpace: "nowrap" } }, "刪")); }) ) : null, /*#__PURE__*/React.createElement("input", { value: f._lName || "", placeholder: "連結名稱（例：Klook 午餐A）", onChange: function (e) { return set("_lName", e.target.value); }, style: inp }), /*#__PURE__*/React.createElement("input", { value: f._lUrl || "", placeholder: "https://…（貼網址）", onChange: function (e) { return set("_lUrl", e.target.value); }, style: Object.assign({}, inp, { marginTop: 6 }) }), /*#__PURE__*/React.createElement("button", { className: "tp-btn", onClick: function () { setF(function (p) { var u = (p._lUrl || "").trim(); if (!u) return p; var arr = (p.links || []).concat([{ id: String(Date.now()), title: (p._lName || u).trim(), url: u }]); return Object.assign({}, p, { links: arr, _lName: "", _lUrl: "" }); }); }, style: { width: "100%", marginTop: 6, padding: 8, borderRadius: 8, background: PALETTE.gold, color: "#fff", fontSize: 13, fontWeight: 600 } }, "＋ 加入連結")), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 10
     }
